@@ -135,7 +135,7 @@ export const AuthForm = () => {
             className="text-[10px] text-pink-600 font-medium hover:underline"
             onClick={() => showSuccess("Enviamos um link para seu email!")}
           >
-            (Esqueceu sua senha, gata?)
+            Esqueceu sua senha, gata?
           </button>
         )}
         <button
