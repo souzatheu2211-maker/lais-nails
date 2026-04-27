@@ -36,6 +36,18 @@ const Index = () => {
 
   const isAdmin = user?.email === 'lais@nails.com';
 
+  const formatBirthDateForInput = (dateStr: string) => {
+    if (!dateStr) return '';
+    // Se já estiver no formato DD/MM/AAAA, retorna
+    if (dateStr.includes('/')) return dateStr;
+    // Se estiver no formato YYYY-MM-DD (padrão do input date antigo), converte
+    if (dateStr.includes('-')) {
+      const [year, month, day] = dateStr.split('-');
+      return `${day}/${month}/${year}`;
+    }
+    return dateStr;
+  };
+
   const fetchProfile = React.useCallback(async () => {
     if (!user?.id) return;
     const { data, error } = await supabase
@@ -55,7 +67,7 @@ const Index = () => {
         full_name: data.full_name || '',
         phone: data.phone || '',
         cpf: data.cpf || '',
-        birth_date: data.birth_date || '',
+        birth_date: formatBirthDateForInput(data.birth_date),
         instagram: data.instagram || ''
       });
     }
@@ -117,7 +129,6 @@ const Index = () => {
 
       if (error) throw error;
       
-      // Atualiza o estado local imediatamente
       setProfile((prev: any) => ({
         ...prev,
         ...editFormData
@@ -125,11 +136,10 @@ const Index = () => {
 
       showSuccess("Perfil atualizado com sucesso!");
       setIsEditModalOpen(false);
-      // Recarrega do banco para garantir
       await fetchProfile();
     } catch (error: any) {
       console.error("Erro ao atualizar:", error);
-      showError("Erro ao salvar: Verifique se as políticas de segurança (RLS) foram criadas no Supabase.");
+      showError("Erro ao salvar alterações.");
     } finally {
       setEditLoading(false);
     }
@@ -320,7 +330,11 @@ const Index = () => {
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-0.5">
                             <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest ml-0.5">Nascimento</p>
-                            <p className="font-bold text-gray-800 text-xs">{profile?.birth_date || '-'}</p>
+                            <p className="font-bold text-gray-800 text-xs">
+                              {profile?.birth_date?.includes('-') 
+                                ? profile.birth_date.split('-').reverse().join('/') 
+                                : profile?.birth_date || '-'}
+                            </p>
                           </div>
                           <div className="space-y-0.5">
                             <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest ml-0.5">Instagram</p>
@@ -483,13 +497,13 @@ const Index = () => {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-2">Nascimento</Label>
-                <Input
-                  required
-                  type="date"
-                  className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-11 text-xs"
+                <InputMask
+                  mask="99/99/9999"
                   value={editFormData.birth_date}
                   onChange={(e) => setEditFormData({ ...editFormData, birth_date: e.target.value })}
-                />
+                >
+                  {(inputProps: any) => <Input required placeholder="DD/MM/AAAA" className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-11 text-xs" {...inputProps} />}
+                </InputMask>
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-2">Instagram (@)</Label>

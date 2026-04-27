@@ -104,13 +104,13 @@ export const AuthForm = () => {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-2">Nascimento</Label>
-                <Input
-                  required
-                  type="date"
-                  className={inputClasses}
+                <InputMask
+                  mask="99/99/9999"
                   value={formData.birthDate}
                   onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
-                />
+                >
+                  {(inputProps: any) => <Input required placeholder="DD/MM/AAAA" className={inputClasses} {...inputProps} />}
+                </InputMask>
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-2">Instagram (@)</Label>
