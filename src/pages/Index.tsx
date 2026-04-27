@@ -4,7 +4,7 @@ import * as React from "react";
 import { useSession } from "@/components/SessionContextProvider";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Calendar as CalendarIcon, Clock, Sparkles, User, LogOut, Instagram, History, Settings, Plus, Pencil, Trash2, ChevronRight, Heart, X, Check, DollarSign, Save, Info, Image as ImageIcon, Upload, Loader2, Lock, AlertCircle } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Sparkles, User, LogOut, Instagram, History, Settings, Plus, Pencil, Trash2, ChevronRight, Heart, X, Check, DollarSign, Save, Info, Image as ImageIcon, Upload, Loader2, Lock, AlertCircle, CalendarDays } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { showError, showSuccess } from "@/utils/toast";
@@ -432,6 +432,10 @@ const Index = () => {
           <linearGradient id="purple-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#9333ea" />
             <stop offset="100%" stopColor="#6366f1" />
+          </linearGradient>
+          <linearGradient id="pink-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#ec4899" />
+            <stop offset="100%" stopColor="#a855f7" />
           </linearGradient>
         </defs>
       </svg>
@@ -861,76 +865,175 @@ const Index = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Agendamento (Escolha de Data e Hora) */}
+      {/* Modal de Agendamento (Calendário Premium) */}
       <Dialog open={isBookingModalOpen} onOpenChange={setIsBookingModalOpen}>
-        <DialogContent className="sm:max-w-[380px] rounded-[2.5rem] border-none shadow-2xl p-6 bg-white">
-          <DialogHeader>
-            <DialogTitle className="text-sm font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
-              <CalendarIcon size={16} className="text-pink-500" /> Agendar {bookingService?.name}
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-6 mt-4">
-            <div className="space-y-2">
-              <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">1. Escolha o dia</Label>
-              <Card className="p-2 border-none shadow-sm rounded-2xl bg-slate-50/50">
+        <DialogContent className="sm:max-w-[400px] rounded-[2.5rem] border-none shadow-2xl p-0 bg-white overflow-hidden">
+          <div className="bg-gradient-to-r from-pink-500 to-purple-600 p-6 text-white relative">
+            <div className="absolute top-4 right-4">
+              <Button onClick={() => setIsBookingModalOpen(false)} variant="ghost" size="icon" className="text-white/80 hover:text-white hover:bg-white/20 rounded-full h-8 w-8">
+                <X size={18} />
+              </Button>
+            </div>
+            <div className="flex flex-col items-center text-center space-y-1">
+              <div className="bg-white/20 backdrop-blur-md p-2 rounded-xl mb-1">
+                <Sparkles size={20} className="text-white animate-pulse" />
+              </div>
+              <h2 className="text-lg font-black tracking-tight">Agende seu horário 💖</h2>
+              <p className="text-[10px] font-medium text-white/80">Escolha o dia e o horário perfeito para suas unhas</p>
+            </div>
+          </div>
+
+          <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto scrollbar-hide">
+            {/* Calendário Estético */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 ml-1">
+                <CalendarDays size={14} className="text-pink-500" />
+                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">1. Escolha o dia</Label>
+              </div>
+              <Card className="p-3 border-none shadow-sm rounded-[2rem] bg-slate-50/50">
                 <Calendar
                   mode="single"
                   selected={bookingDate}
                   onSelect={setBookingDate}
                   locale={ptBR}
                   disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
-                  className="rounded-xl border-none mx-auto"
+                  className="rounded-2xl border-none mx-auto"
                   classNames={{
-                    day_selected: "bg-pink-500 text-white hover:bg-pink-600 focus:bg-pink-500 rounded-xl",
-                    day_today: "bg-white text-pink-500 border border-pink-100 rounded-xl",
-                    day: "h-8 w-8 p-0 font-bold text-[10px] rounded-xl hover:bg-pink-50 transition-colors text-slate-900",
-                    head_cell: "text-slate-400 font-black text-[8px] uppercase tracking-widest w-8",
-                    nav_button: "h-6 w-6 bg-transparent p-0 opacity-50 hover:opacity-100 text-pink-500",
+                    day_selected: "bg-gradient-to-br from-purple-600 to-pink-500 text-white hover:from-purple-700 hover:to-pink-600 focus:from-purple-600 focus:to-pink-500 rounded-xl shadow-lg shadow-purple-200/50 scale-110 transition-all",
+                    day_today: "bg-white text-pink-500 border-2 border-pink-100 rounded-xl font-black",
+                    day: "h-9 w-9 p-0 font-bold text-[11px] rounded-xl hover:bg-pink-50 transition-all text-slate-900 relative",
+                    head_cell: "text-slate-400 font-black text-[9px] uppercase tracking-widest w-9",
+                    nav_button: "h-8 w-8 bg-transparent p-0 opacity-50 hover:opacity-100 text-pink-500",
+                    day_disabled: "text-slate-200 opacity-50 cursor-not-allowed",
+                  }}
+                  components={{
+                    Day: ({ date, ...props }) => {
+                      const isAvailable = allBookingSlots.some(s => s.is_available); // Simplificado para exemplo
+                      return (
+                        <div {...props} className="relative flex items-center justify-center">
+                          {props.children}
+                          {isAvailable && !props.disabled && (
+                            <div className="absolute bottom-1 w-1 h-1 bg-pink-400 rounded-full" />
+                          )}
+                        </div>
+                      );
+                    }
                   }}
                 />
               </Card>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">2. Escolha o horário</Label>
-              <div className="grid grid-cols-4 gap-2">
+            {/* Lista de Horários */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 ml-1">
+                <Clock size={14} className="text-pink-500" />
+                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">2. Escolha o horário</Label>
+              </div>
+              <div className="grid grid-cols-4 gap-2.5">
                 {allBookingSlots.length > 0 ? (
                   allBookingSlots.map((slot) => {
                     const isOccupied = !slot.is_available;
+                    const isSelected = selectedSlot?.id === slot.id;
                     return (
-                      <button
+                      <motion.button
                         key={slot.id}
+                        whileTap={{ scale: 0.95 }}
                         disabled={isOccupied}
                         onClick={() => setSelectedSlot(slot)}
-                        className={`h-9 rounded-xl text-[10px] font-black transition-all border-2 flex items-center justify-center gap-1 ${
+                        className={`h-10 rounded-xl text-[10px] font-black transition-all border-2 flex items-center justify-center gap-1 relative overflow-hidden ${
                           isOccupied 
                             ? 'bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed' 
-                            : selectedSlot?.id === slot.id 
-                              ? 'bg-pink-500 border-pink-500 text-white shadow-md scale-105' 
-                              : 'bg-white border-slate-100 text-slate-400 hover:border-pink-200'
+                            : isSelected 
+                              ? 'bg-gradient-to-br from-purple-600 to-pink-500 border-transparent text-white shadow-lg shadow-purple-200/50 scale-105' 
+                              : 'bg-white border-slate-100 text-slate-500 hover:border-pink-200 hover:bg-pink-50/30'
                         }`}
                       >
-                        {isOccupied && <Lock size={10} />}
+                        {isOccupied ? <Lock size={10} /> : isSelected ? <Check size={10} /> : null}
                         {slot.start_time.substring(0, 5)}
-                      </button>
+                        {isSelected && (
+                          <motion.div 
+                            layoutId="glow"
+                            className="absolute inset-0 bg-white/20 blur-md"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                          />
+                        )}
+                      </motion.button>
                     );
                   })
                 ) : (
-                  <div className="col-span-4 py-4 text-center">
-                    <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">Nenhum horário disponível para este dia</p>
+                  <div className="col-span-4 py-8 text-center bg-slate-50/50 rounded-[2rem] border-2 border-dashed border-slate-100">
+                    <CalendarIcon size={24} className="mx-auto mb-2 text-slate-200" />
+                    <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">Nenhum horário disponível</p>
                   </div>
                 )}
               </div>
             </div>
 
-            <Button 
-              onClick={handleCreateAppointment}
-              disabled={bookingLoading || !selectedSlot}
-              className="w-full bg-pink-600 hover:bg-pink-700 text-white font-black text-[10px] py-6 rounded-2xl shadow-md tracking-widest uppercase mt-2"
-            >
-              {bookingLoading ? 'PROCESSANDO...' : 'CONFIRMAR AGENDAMENTO'}
-            </Button>
+            {/* Card de Confirmação */}
+            <AnimatePresence>
+              {selectedSlot && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                  className="pt-2"
+                >
+                  <Card className="p-5 border-none bg-gradient-to-br from-slate-50 to-white shadow-xl rounded-[2rem] relative overflow-hidden border border-pink-50">
+                    <div className="absolute top-0 right-0 p-4 opacity-5">
+                      <Heart size={60} className="fill-pink-500" />
+                    </div>
+                    <div className="space-y-4 relative z-10">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Resumo do Agendamento</h4>
+                          <p className="text-sm font-black text-slate-700">{bookingService?.name}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[10px] font-black text-pink-500 bg-pink-50 px-2 py-0.5 rounded-full inline-block">R$ {bookingService?.price}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 bg-purple-50 rounded-lg flex items-center justify-center text-purple-500">
+                            <CalendarIcon size={14} />
+                          </div>
+                          <div>
+                            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Data</p>
+                            <p className="text-[10px] font-black text-slate-600">{bookingDate ? format(bookingDate, "dd/MM/yyyy") : '-'}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 bg-pink-50 rounded-lg flex items-center justify-center text-pink-500">
+                            <Clock size={14} />
+                          </div>
+                          <div>
+                            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Horário</p>
+                            <p className="text-[10px] font-black text-slate-600">{selectedSlot.start_time.substring(0, 5)}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <Button 
+                        onClick={handleCreateAppointment}
+                        disabled={bookingLoading}
+                        className="w-full bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white font-black text-[11px] py-6 rounded-2xl shadow-lg shadow-pink-200/50 mt-2 tracking-widest uppercase active:scale-95 transition-all"
+                      >
+                        {bookingLoading ? (
+                          <div className="flex items-center gap-2">
+                            <Loader2 size={14} className="animate-spin" />
+                            <span>PROCESSANDO...</span>
+                          </div>
+                        ) : (
+                          "CONFIRMAR AGENDAMENTO"
+                        )}
+                      </Button>
+                    </div>
+                  </Card>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </DialogContent>
       </Dialog>
