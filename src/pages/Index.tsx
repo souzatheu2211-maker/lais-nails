@@ -234,8 +234,8 @@ const Index = () => {
                         <Card key={service.id} className="p-3 border-none shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] rounded-2xl flex items-center gap-3 hover:shadow-md transition-all group bg-white/80 backdrop-blur-sm">
                           <div className="w-10 h-10 bg-pink-50/50 rounded-xl flex items-center justify-center text-lg group-hover:scale-110 transition-transform">💅</div>
                           <div className="flex-1">
-                            <h4 className="font-bold text-slate-700 text-[12px] leading-tight">{service.name}</h4>
-                            <div className="flex items-center gap-2 text-[9px] text-slate-400 mt-0.5 font-bold uppercase tracking-wider">
+                            <h4 className="font-bold text-slate-700 text-[11px] leading-tight">{service.name}</h4>
+                            <div className="flex items-center gap-2 text-[8px] text-slate-400 mt-0.5 font-bold uppercase tracking-wider">
                               <span className="flex items-center gap-1"><Clock size={10} className="text-pink-200" /> {service.duration_minutes} min</span>
                               <span className="text-pink-400/80">R$ {service.price}</span>
                             </div>
@@ -246,7 +246,6 @@ const Index = () => {
                     </div>
                   </motion.div>
                 )}
-                {/* ... history and profile tabs remain same but with refined text ... */}
                 {activeTab === "history" && (
                   <motion.div key="history" variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-4">
                     <h3 className="text-[13px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Meu Histórico</h3>
@@ -255,7 +254,7 @@ const Index = () => {
                         <Card key={app.id} className="p-3 border-none shadow-sm rounded-2xl bg-white/80">
                           <div className="flex justify-between items-start">
                             <div>
-                              <h4 className="font-bold text-slate-700 text-[12px]">{app.services?.name}</h4>
+                              <h4 className="font-bold text-slate-700 text-[11px]">{app.services?.name}</h4>
                               <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">{app.available_slots?.date} • {app.available_slots?.start_time}</p>
                             </div>
                             <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${app.status === 'completed' ? 'bg-green-50 text-green-500' : 'bg-blue-50 text-blue-500'}`}>
@@ -273,26 +272,26 @@ const Index = () => {
                     <Card className="p-5 border-none shadow-sm rounded-[2rem] space-y-4 bg-white/80">
                       <div className="space-y-0.5">
                         <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest ml-0.5">Nome Completo</p>
-                        <p className="font-bold text-slate-700 text-[11px]">{profile?.full_name || 'Não informado'}</p>
+                        <p className="font-bold text-slate-700 text-[10px]">{profile?.full_name || 'Não informado'}</p>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-0.5">
                           <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest ml-0.5">CPF</p>
-                          <p className="font-bold text-slate-700 text-[11px]">{profile?.cpf || '-'}</p>
+                          <p className="font-bold text-slate-700 text-[10px]">{profile?.cpf || '-'}</p>
                         </div>
                         <div className="space-y-0.5">
                           <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest ml-0.5">Telefone</p>
-                          <p className="font-bold text-slate-700 text-[11px]">{profile?.phone || '-'}</p>
+                          <p className="font-bold text-slate-700 text-[10px]">{profile?.phone || '-'}</p>
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-0.5">
                           <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest ml-0.5">Nascimento</p>
-                          <p className="font-bold text-slate-700 text-[11px]">{profile?.birth_date || '-'}</p>
+                          <p className="font-bold text-slate-700 text-[10px]">{profile?.birth_date || '-'}</p>
                         </div>
                         <div className="space-y-0.5">
                           <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest ml-0.5">Instagram</p>
-                          <p className="font-bold text-pink-500 text-[11px]">{profile?.instagram || '-'}</p>
+                          <p className="font-bold text-pink-500 text-[10px]">{profile?.instagram || '-'}</p>
                         </div>
                       </div>
                       <Button onClick={() => setIsEditModalOpen(true)} variant="outline" className="w-full rounded-xl border-pink-100 text-pink-500 font-black text-[9px] h-9 hover:bg-pink-50 mt-1 tracking-widest uppercase">EDITAR DADOS</Button>
@@ -312,7 +311,7 @@ const Index = () => {
                             <div className="flex items-center gap-2.5">
                               <div className="w-8 h-8 bg-purple-50 rounded-xl flex items-center justify-center text-purple-400 font-black text-[10px]">{app.profiles?.full_name?.charAt(0)}</div>
                               <div>
-                                <h4 className="font-bold text-slate-700 text-[11px]">{app.profiles?.full_name}</h4>
+                                <h4 className="font-bold text-slate-700 text-[10px]">{app.profiles?.full_name}</h4>
                                 <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">{app.services?.name} • {app.available_slots?.start_time}</p>
                               </div>
                             </div>
@@ -333,14 +332,14 @@ const Index = () => {
                       {services.map((service) => (
                         <Card key={service.id} className="p-3 border-none shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] rounded-2xl flex justify-between items-center bg-white/80 backdrop-blur-sm">
                           <div>
-                            <h4 className="font-bold text-slate-700 text-[12px] leading-tight">{service.name}</h4>
-                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">R$ {service.price} • {service.duration_minutes} min</p>
+                            <h4 className="font-bold text-slate-700 text-[11px] leading-tight">{service.name}</h4>
+                            <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">R$ {service.price} • {service.duration_minutes} min</p>
                           </div>
                           <div className="flex gap-1">
                             <Button onClick={() => openServiceModal(service)} variant="ghost" size="icon" className="text-pink-400 hover:text-pink-600 hover:bg-pink-50 h-8 w-8 rounded-xl transition-colors">
                               <Pencil size={14} />
                             </Button>
-                            <Button onClick={() => handleDeleteService(service.id)} variant="ghost" size="icon" className="text-slate-300 hover:text-rose-400 hover:bg-rose-50 h-8 w-8 rounded-xl transition-colors">
+                            <Button onClick={() => handleDeleteService(service.id)} variant="ghost" size="icon" className="text-rose-400 hover:text-rose-600 hover:bg-rose-50 h-8 w-8 rounded-xl transition-colors">
                               <Trash2 size={14} />
                             </Button>
                           </div>
@@ -368,26 +367,26 @@ const Index = () => {
           <form onSubmit={handleUpdateProfile} className="space-y-4 mt-2">
             <div className="space-y-1">
               <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">Nome Completo</Label>
-              <Input required className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[11px]" value={editFormData.full_name} onChange={(e) => setEditFormData({ ...editFormData, full_name: e.target.value })} />
+              <Input required className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[10px]" value={editFormData.full_name} onChange={(e) => setEditFormData({ ...editFormData, full_name: e.target.value })} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">CPF</Label>
-                <InputMask mask="999.999.999-99" value={editFormData.cpf} onChange={(e) => setEditFormData({ ...editFormData, cpf: e.target.value })}>{(inputProps: any) => <Input required className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[11px]" {...inputProps} />}</InputMask>
+                <InputMask mask="999.999.999-99" value={editFormData.cpf} onChange={(e) => setEditFormData({ ...editFormData, cpf: e.target.value })}>{(inputProps: any) => <Input required className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[10px]" {...inputProps} />}</InputMask>
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">Telefone</Label>
-                <InputMask mask="(99) 99999-9999" value={editFormData.phone} onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}>{(inputProps: any) => <Input required className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[11px]" {...inputProps} />}</InputMask>
+                <InputMask mask="(99) 99999-9999" value={editFormData.phone} onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}>{(inputProps: any) => <Input required className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[10px]" {...inputProps} />}</InputMask>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">Nascimento</Label>
-                <InputMask mask="99/99/9999" value={editFormData.birth_date} onChange={(e) => setEditFormData({ ...editFormData, birth_date: e.target.value })}>{(inputProps: any) => <Input required placeholder="DD/MM/AAAA" className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[11px]" {...inputProps} />}</InputMask>
+                <InputMask mask="99/99/9999" value={editFormData.birth_date} onChange={(e) => setEditFormData({ ...editFormData, birth_date: e.target.value })}>{(inputProps: any) => <Input required placeholder="DD/MM/AAAA" className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[10px]" {...inputProps} />}</InputMask>
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">Instagram (@)</Label>
-                <Input className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[11px]" value={editFormData.instagram} onChange={(e) => setEditFormData({ ...editFormData, instagram: e.target.value })} />
+                <Input className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[10px]" value={editFormData.instagram} onChange={(e) => setEditFormData({ ...editFormData, instagram: e.target.value })} />
               </div>
             </div>
             <DialogFooter className="pt-2"><Button type="submit" disabled={editLoading} className="w-full bg-pink-600 hover:bg-pink-700 text-white font-black text-[10px] py-6 rounded-2xl shadow-md tracking-widest uppercase">{editLoading ? 'SALVANDO...' : 'SALVAR ALTERAÇÕES'}</Button></DialogFooter>
@@ -401,21 +400,21 @@ const Index = () => {
           <form onSubmit={handleSaveService} className="space-y-4 mt-2">
             <div className="space-y-1">
               <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">Nome do Serviço</Label>
-              <Input required className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[11px]" value={serviceFormData.name} onChange={(e) => setServiceFormData({ ...serviceFormData, name: e.target.value })} />
+              <Input required className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[10px]" value={serviceFormData.name} onChange={(e) => setServiceFormData({ ...serviceFormData, name: e.target.value })} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">Preço (R$)</Label>
-                <Input required type="number" step="0.01" className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[11px]" value={serviceFormData.price} onChange={(e) => setServiceFormData({ ...serviceFormData, price: e.target.value })} />
+                <Input required type="number" step="0.01" className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[10px]" value={serviceFormData.price} onChange={(e) => setServiceFormData({ ...serviceFormData, price: e.target.value })} />
               </div>
               <div className="space-y-1">
                 <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">Duração (min)</Label>
-                <Input required type="number" className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[11px]" value={serviceFormData.duration_minutes} onChange={(e) => setServiceFormData({ ...serviceFormData, duration_minutes: e.target.value })} />
+                <Input required type="number" className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[10px]" value={serviceFormData.duration_minutes} onChange={(e) => setServiceFormData({ ...serviceFormData, duration_minutes: e.target.value })} />
               </div>
             </div>
             <div className="space-y-1">
               <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">Descrição (Opcional)</Label>
-              <Textarea className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 text-[11px] min-h-[80px]" value={serviceFormData.description} onChange={(e) => setServiceFormData({ ...serviceFormData, description: e.target.value })} />
+              <Textarea className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 text-[10px] min-h-[80px]" value={serviceFormData.description} onChange={(e) => setServiceFormData({ ...serviceFormData, description: e.target.value })} />
             </div>
             <DialogFooter className="pt-2"><Button type="submit" disabled={editLoading} className="w-full bg-pink-600 hover:bg-pink-700 text-white font-black text-[10px] py-6 rounded-2xl shadow-md tracking-widest uppercase">{editLoading ? 'SALVANDO...' : 'SALVAR SERVIÇO'}</Button></DialogFooter>
           </form>
