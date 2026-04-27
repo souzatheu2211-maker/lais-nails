@@ -681,7 +681,7 @@ const Index = () => {
                 {activeTab === "calendar" && (
                   <motion.div key="admin-calendar" variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-4">
                     <h3 className="text-[13px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Gerenciar Agenda</h3>
-                    <Card className="p-6 border-none shadow-xl rounded-[2.5rem] bg-white/90 backdrop-blur-md overflow-hidden border border-pink-50">
+                    <Card className="p-2 border-none shadow-2xl rounded-[2.5rem] bg-white/90 backdrop-blur-md overflow-hidden border border-pink-50">
                       <Calendar
                         mode="single"
                         selected={selectedDate}
@@ -915,7 +915,7 @@ const Index = () => {
                 <CalendarDays size={14} className="text-pink-500" />
                 <Label className="text-[10px] font-black text-pink-300 uppercase tracking-[0.2em]">1. Escolha o dia</Label>
               </div>
-              <Card className="p-4 border-none shadow-xl rounded-[2.5rem] bg-white/90 backdrop-blur-md border border-pink-50">
+              <Card className="p-2 border-none shadow-2xl rounded-[2.5rem] bg-white/90 backdrop-blur-md border border-pink-50">
                 <Calendar
                   mode="single"
                   selected={bookingDate}
