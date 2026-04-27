@@ -4,7 +4,7 @@ import * as React from "react";
 import { useSession } from "@/components/SessionContextProvider";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Calendar as CalendarIcon, Clock, Sparkles, User, LogOut, Instagram, History, Settings, Plus, Pencil, Trash2, ChevronRight, Heart, X, Check, DollarSign, Save, Info, Image as ImageIcon, Upload, Loader2 } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Sparkles, User, LogOut, Instagram, History, Settings, Plus, Pencil, Trash2, ChevronRight, Heart, X, Check, DollarSign, Save, Info, Image as ImageIcon, Upload, Loader2, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { showError, showSuccess } from "@/utils/toast";
@@ -37,7 +37,7 @@ const Index = () => {
   const [isBookingModalOpen, setIsBookingModalOpen] = React.useState(false);
   const [bookingService, setBookingService] = React.useState<any>(null);
   const [bookingDate, setBookingDate] = React.useState<Date | undefined>(new Date());
-  const [availableBookingSlots, setAvailableBookingSlots] = React.useState<any[]>([]);
+  const [allBookingSlots, setAllBookingSlots] = React.useState<any[]>([]);
   const [selectedSlot, setSelectedSlot] = React.useState<any>(null);
   const [bookingLoading, setBookingLoading] = React.useState(false);
 
@@ -118,19 +118,19 @@ const Index = () => {
 
   const fetchBookingSlots = React.useCallback(async (date: Date) => {
     const formattedDate = format(date, 'yyyy-MM-dd');
+    // Buscamos TODOS os horários do dia, inclusive os ocupados
     const { data, error } = await supabase
       .from('available_slots')
       .select('*')
       .eq('date', formattedDate)
-      .eq('is_available', true)
       .order('start_time');
     
     if (error) {
-      showError("Erro ao carregar horários disponíveis");
+      showError("Erro ao carregar horários");
       return;
     }
     
-    setAvailableBookingSlots(data || []);
+    setAllBookingSlots(data || []);
   }, []);
 
   React.useEffect(() => {
@@ -297,8 +297,9 @@ const Index = () => {
       
       for (let i = 1; i < slotsToBlock; i++) {
         const nextTime = format(addMinutes(startTime, i * 30), 'HH:mm:ss');
-        const nextSlot = availableBookingSlots.find(s => s.start_time === nextTime);
-        if (nextSlot) {
+        const nextSlot = allBookingSlots.find(s => s.start_time === nextTime);
+        
+        if (nextSlot && nextSlot.is_available) {
           slotsToUpdate.push(nextSlot.id);
         } else {
           // Se não houver slot disponível para a duração total, avisar
@@ -794,20 +795,27 @@ const Index = () => {
             <div className="space-y-2">
               <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">2. Escolha o horário</Label>
               <div className="grid grid-cols-4 gap-2">
-                {availableBookingSlots.length > 0 ? (
-                  availableBookingSlots.map((slot) => (
-                    <button
-                      key={slot.id}
-                      onClick={() => setSelectedSlot(slot)}
-                      className={`h-9 rounded-xl text-[10px] font-black transition-all border-2 ${
-                        selectedSlot?.id === slot.id 
-                          ? 'bg-pink-500 border-pink-500 text-white shadow-md scale-105' 
-                          : 'bg-white border-slate-100 text-slate-400 hover:border-pink-200'
-                      }`}
-                    >
-                      {slot.start_time.substring(0, 5)}
-                    </button>
-                  ))
+                {allBookingSlots.length > 0 ? (
+                  allBookingSlots.map((slot) => {
+                    const isOccupied = !slot.is_available;
+                    return (
+                      <button
+                        key={slot.id}
+                        disabled={isOccupied}
+                        onClick={() => setSelectedSlot(slot)}
+                        className={`h-9 rounded-xl text-[10px] font-black transition-all border-2 flex items-center justify-center gap-1 ${
+                          isOccupied 
+                            ? 'bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed' 
+                            : selectedSlot?.id === slot.id 
+                              ? 'bg-pink-500 border-pink-500 text-white shadow-md scale-105' 
+                              : 'bg-white border-slate-100 text-slate-400 hover:border-pink-200'
+                        }`}
+                      >
+                        {isOccupied && <Lock size={10} />}
+                        {slot.start_time.substring(0, 5)}
+                      </button>
+                    );
+                  })
                 ) : (
                   <div className="col-span-4 py-4 text-center">
                     <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">Nenhum horário disponível para este dia</p>
