@@ -95,13 +95,13 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
-      {/* Header - Mais compacto */}
+      {/* Header */}
       <header className="bg-white px-5 pt-6 pb-4 rounded-b-[2.5rem] shadow-sm border-b border-pink-50 relative overflow-hidden">
         <div className="absolute top-[-10%] right-[-10%] w-24 h-24 bg-pink-50 rounded-full blur-3xl opacity-50" />
         
         <div className="flex flex-col items-center relative z-10">
           <div className="flex justify-between w-full items-center mb-2">
-            <div className="w-8" /> {/* Spacer */}
+            <div className="w-8" />
             <img 
               src="/logo.png" 
               alt="Lais Nails Logo" 
@@ -135,7 +135,7 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Main Content - Espaçamento reduzido */}
+      {/* Main Content */}
       <main className="px-5 mt-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           
@@ -162,12 +162,6 @@ const Index = () => {
                       <Button size="sm" className="bg-pink-500 hover:bg-pink-600 rounded-xl px-4 h-8 font-bold text-[10px] shadow-sm">Agendar</Button>
                     </Card>
                   ))}
-                  {services.length === 0 && (
-                    <div className="text-center py-12 bg-white rounded-[2rem] border border-dashed border-gray-100">
-                      <Sparkles className="mx-auto text-gray-200 mb-2" size={32} />
-                      <p className="text-gray-400 text-xs font-medium">Nenhum serviço disponível.</p>
-                    </div>
-                  )}
                 </div>
               </TabsContent>
 
@@ -187,12 +181,6 @@ const Index = () => {
                       </div>
                     </Card>
                   ))}
-                  {appointments.length === 0 && (
-                    <div className="text-center py-12 bg-white rounded-[2rem] border border-dashed border-gray-100">
-                      <History className="mx-auto text-gray-200 mb-2" size={32} />
-                      <p className="text-gray-400 text-xs font-medium">Sem agendamentos.</p>
-                    </div>
-                  )}
                 </div>
               </TabsContent>
 
@@ -286,12 +274,12 @@ const Index = () => {
           )}
         </Tabs>
 
-        {/* Footer Credits - Mais discreto */}
-        <footer className="pt-10 pb-4 flex flex-col items-center gap-1.5 text-gray-300">
+        {/* Footer Credits - Cor ajustada para preto/cinza escuro */}
+        <footer className="pt-10 pb-4 flex flex-col items-center gap-1.5 text-slate-900">
           <p className="text-[8px] font-black tracking-[0.2em] uppercase">Desenvolvido por Matheus Souza</p>
           <div className="flex items-center gap-4">
-            <p className="text-[8px] font-bold opacity-60">© 2026 MATHEUS SOUZA</p>
-            <a href="https://instagram.com/theu_souz2" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-pink-400 transition-colors group">
+            <p className="text-[8px] font-bold opacity-70">© 2026 MATHEUS SOUZA</p>
+            <a href="https://instagram.com/theu_souz2" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-pink-600 transition-colors group">
               <Instagram size={12} className="group-hover:scale-110 transition-transform" />
               <span className="text-[9px] font-black">@theu_souz2</span>
             </a>
@@ -299,7 +287,7 @@ const Index = () => {
         </footer>
       </main>
 
-      {/* Bottom Navigation - Mais compacto e baixo */}
+      {/* Bottom Navigation */}
       <nav className="fixed bottom-4 left-4 right-4 bg-white/90 backdrop-blur-xl border border-white/40 h-14 rounded-[1.5rem] shadow-xl flex items-center justify-around px-2 z-50">
         <button onClick={() => setActiveTab('home')} className={`p-2.5 rounded-xl transition-all ${activeTab === 'home' ? 'text-pink-500 bg-pink-50 scale-105' : 'text-gray-300 hover:text-pink-300'}`}>
           <Sparkles size={20} />
