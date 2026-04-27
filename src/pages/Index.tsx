@@ -30,7 +30,7 @@ const Index = () => {
   
   // Estados da Agenda (Admin)
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(new Date());
-  const [availableSlots, setAvailableSlots] = React.useState<string[]>([]);
+  const [adminSlots, setAdminSlots] = React.useState<any[]>([]);
   const [savingSlots, setSavingSlots] = React.useState(false);
 
   // Estados de Agendamento (Cliente)
@@ -106,11 +106,11 @@ const Index = () => {
     setAppointments(data || []);
   }, [user?.id, isAdmin]);
 
-  const fetchSlotsForDate = React.useCallback(async (date: Date) => {
+  const fetchAdminSlots = React.useCallback(async (date: Date) => {
     const formattedDate = format(date, 'yyyy-MM-dd');
     const { data, error } = await supabase
       .from('available_slots')
-      .select('start_time')
+      .select('*')
       .eq('date', formattedDate);
     
     if (error) {
@@ -118,7 +118,7 @@ const Index = () => {
       return;
     }
     
-    setAvailableSlots(data.map(s => s.start_time.substring(0, 5)));
+    setAdminSlots(data || []);
   }, []);
 
   const fetchBookingSlots = React.useCallback(async (date: Date) => {
@@ -147,9 +147,9 @@ const Index = () => {
 
   React.useEffect(() => {
     if (isAdmin && selectedDate) {
-      fetchSlotsForDate(selectedDate);
+      fetchAdminSlots(selectedDate);
     }
-  }, [isAdmin, selectedDate, fetchSlotsForDate]);
+  }, [isAdmin, selectedDate, fetchAdminSlots]);
 
   React.useEffect(() => {
     if (!isAdmin && bookingDate && isBookingModalOpen) {
@@ -401,10 +401,18 @@ const Index = () => {
     return `${hour.toString().padStart(2, '0')}:${minute}`;
   });
 
-  const toggleSlot = (time: string) => {
-    setAvailableSlots(prev => 
-      prev.includes(time) ? prev.filter(t => t !== time) : [...prev, time]
-    );
+  const toggleSlotAdmin = (time: string) => {
+    const existingSlot = adminSlots.find(s => s.start_time.substring(0, 5) === time);
+    if (existingSlot && !existingSlot.is_available) {
+      showError("Este horário já está agendado por um cliente!");
+      return;
+    }
+
+    if (existingSlot) {
+      setAdminSlots(prev => prev.filter(s => s.start_time.substring(0, 5) !== time));
+    } else {
+      setAdminSlots(prev => [...prev, { start_time: `${time}:00`, is_available: true }]);
+    }
   };
 
   const saveDailySlots = async () => {
@@ -413,17 +421,23 @@ const Index = () => {
     const formattedDate = format(selectedDate, 'yyyy-MM-dd');
 
     try {
-      await supabase.from('available_slots').delete().eq('date', formattedDate);
-      if (availableSlots.length > 0) {
-        const newSlots = availableSlots.map(time => ({
+      // Só deleta os que estão disponíveis (não agendados)
+      await supabase.from('available_slots').delete().eq('date', formattedDate).eq('is_available', true);
+      
+      const newSlots = adminSlots
+        .filter(s => !s.id) // Só insere os novos
+        .map(s => ({
           date: formattedDate,
-          start_time: `${time}:00`,
+          start_time: s.start_time,
           is_available: true
         }));
+
+      if (newSlots.length > 0) {
         const { error } = await supabase.from('available_slots').insert(newSlots);
         if (error) throw error;
       }
       showSuccess("Agenda do dia salva!");
+      fetchAdminSlots(selectedDate);
     } catch (error: any) {
       showError(error.message);
     } finally {
@@ -702,9 +716,23 @@ const Index = () => {
                         </div>
                         <div className="grid grid-cols-4 gap-2">
                           {timeSlots.map((time) => {
-                            const isSelected = availableSlots.includes(time);
+                            const slot = adminSlots.find(s => s.start_time.substring(0, 5) === time);
+                            const isSelected = !!slot;
+                            const isOccupied = slot && !slot.is_available;
+                            
                             return (
-                              <button key={time} onClick={() => toggleSlot(time)} className={`h-9 rounded-xl text-[10px] font-black transition-all border-2 ${isSelected ? 'bg-pink-500 border-pink-500 text-white shadow-md scale-105' : 'bg-slate-200 border-slate-300 text-slate-400 hover:border-pink-200'}`}>
+                              <button 
+                                key={time} 
+                                onClick={() => toggleSlotAdmin(time)} 
+                                className={`h-9 rounded-xl text-[10px] font-black transition-all border-2 flex items-center justify-center gap-1 ${
+                                  isOccupied 
+                                    ? 'bg-slate-200 border-slate-300 text-slate-400 cursor-not-allowed' 
+                                    : isSelected 
+                                      ? 'bg-pink-500 border-pink-500 text-white shadow-md scale-105' 
+                                      : 'bg-white border-slate-100 text-slate-400 hover:border-pink-200'
+                                }`}
+                              >
+                                {isOccupied && <Lock size={10} />}
                                 {time}
                               </button>
                             );
