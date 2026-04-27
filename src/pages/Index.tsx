@@ -362,6 +362,7 @@ const Index = () => {
 
     setCancelLoading(true);
     try {
+      // 1. Atualizar status do agendamento
       const { error } = await supabase.from('appointments').update({
         status: 'cancelled',
         cancellation_reason: cancelReason
@@ -369,7 +370,22 @@ const Index = () => {
 
       if (error) throw error;
 
-      showSuccess("Agendamento cancelado.");
+      // 2. Liberar os horários (slots) novamente
+      const { data: slotsToFree, error: slotsError } = await supabase
+        .from('available_slots')
+        .select('id')
+        .eq('date', appointmentToCancel.appointment_date)
+        .gte('start_time', appointmentToCancel.start_time)
+        .lt('start_time', appointmentToCancel.end_time);
+
+      if (slotsError) throw slotsError;
+
+      if (slotsToFree && slotsToFree.length > 0) {
+        const ids = slotsToFree.map(s => s.id);
+        await supabase.from('available_slots').update({ is_available: true }).in('id', ids);
+      }
+
+      showSuccess("Agendamento cancelado e horário liberado.");
       setIsCancelModalOpen(false);
       fetchAppointments();
     } catch (error: any) {
@@ -432,10 +448,6 @@ const Index = () => {
           <linearGradient id="purple-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#9333ea" />
             <stop offset="100%" stopColor="#6366f1" />
-          </linearGradient>
-          <linearGradient id="pink-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#ec4899" />
-            <stop offset="100%" stopColor="#a855f7" />
           </linearGradient>
         </defs>
       </svg>
@@ -906,19 +918,6 @@ const Index = () => {
                     nav_button: "h-8 w-8 bg-transparent p-0 opacity-50 hover:opacity-100 text-pink-500",
                     day_disabled: "text-slate-200 opacity-50 cursor-not-allowed",
                   }}
-                  components={{
-                    Day: ({ date, ...props }) => {
-                      const isAvailable = allBookingSlots.some(s => s.is_available); // Simplificado para exemplo
-                      return (
-                        <div {...props} className="relative flex items-center justify-center">
-                          {props.children}
-                          {isAvailable && !props.disabled && (
-                            <div className="absolute bottom-1 w-1 h-1 bg-pink-400 rounded-full" />
-                          )}
-                        </div>
-                      );
-                    }
-                  }}
                 />
               </Card>
             </div>
@@ -942,10 +941,10 @@ const Index = () => {
                         onClick={() => setSelectedSlot(slot)}
                         className={`h-10 rounded-xl text-[10px] font-black transition-all border-2 flex items-center justify-center gap-1 relative overflow-hidden ${
                           isOccupied 
-                            ? 'bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed' 
+                            ? 'bg-rose-50 border-rose-200 text-rose-500 cursor-not-allowed' 
                             : isSelected 
                               ? 'bg-gradient-to-br from-purple-600 to-pink-500 border-transparent text-white shadow-lg shadow-purple-200/50 scale-105' 
-                              : 'bg-white border-slate-100 text-slate-500 hover:border-pink-200 hover:bg-pink-50/30'
+                              : 'bg-emerald-50 border-emerald-100 text-emerald-600 hover:border-emerald-300'
                         }`}
                       >
                         {isOccupied ? <Lock size={10} /> : isSelected ? <Check size={10} /> : null}
