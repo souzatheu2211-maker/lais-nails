@@ -946,10 +946,10 @@ const Index = () => {
                         onClick={() => setSelectedSlot(slot)}
                         className={`h-10 rounded-xl text-[10px] font-black transition-all border-2 flex items-center justify-center gap-1 relative overflow-hidden ${
                           isOccupied 
-                            ? 'bg-rose-500 border-rose-600 text-white cursor-not-allowed shadow-sm' 
+                            ? 'bg-slate-200 border-slate-300 text-slate-400 cursor-not-allowed shadow-sm' 
                             : isSelected 
-                              ? 'bg-pink-500 border-transparent text-white shadow-lg shadow-pink-200/50 scale-105' 
-                              : 'bg-emerald-50 border-emerald-100 text-emerald-600 hover:border-emerald-300'
+                              ? 'bg-pink-500 border-pink-600 text-white shadow-lg shadow-pink-200/50 scale-105' 
+                              : 'bg-emerald-500 border-emerald-600 text-white hover:bg-emerald-600'
                         }`}
                       >
                         {isOccupied ? <Lock size={10} /> : isSelected ? <Check size={10} /> : null}
