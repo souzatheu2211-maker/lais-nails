@@ -24,20 +24,20 @@ const Login = () => {
       <div className="absolute top-[-10%] left-[-10%] w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse" />
       <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-purple-900/20 rounded-full blur-3xl animate-bounce duration-[10s]" />
 
-      {/* Container Principal - Alinhado ao topo para subir a caixa */}
-      <div className="w-full flex flex-col items-center justify-start relative z-10 pt-12 pb-8">
+      {/* Container Principal - Alinhado ao topo com padding mínimo */}
+      <div className="w-full flex flex-col items-center justify-start relative z-10 pt-2 pb-8">
         
-        {/* Logo e Ícone */}
-        <div className="flex flex-col items-center mb-6 animate-in fade-in slide-in-from-top-4 duration-1000">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl shadow-xl mb-4 animate-bounce duration-[3s] border border-white/30">
-            <Sparkles className="text-white" size={28} />
+        {/* Logo e Ícone - Reduzi as margens para subir tudo */}
+        <div className="flex flex-col items-center mb-4 animate-in fade-in slide-in-from-top-4 duration-1000">
+          <div className="inline-flex items-center justify-center w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl shadow-xl mb-2 animate-bounce duration-[3s] border border-white/30">
+            <Sparkles className="text-white" size={24} />
           </div>
           <img 
             src="/logo.png" 
             alt="Lais Nails Logo" 
-            className="w-52 h-auto object-contain drop-shadow-2xl"
+            className="w-44 h-auto object-contain drop-shadow-2xl"
           />
-          <p className="text-white/90 text-[9px] font-black uppercase tracking-[0.4em] mt-2">Sua beleza, nossa arte</p>
+          <p className="text-white/90 text-[8px] font-black uppercase tracking-[0.4em] mt-1">Sua beleza, nossa arte</p>
         </div>
 
         {/* Caixa de Login Otimizada para Mobile */}
@@ -107,7 +107,7 @@ const Login = () => {
         </div>
 
         {/* Footer Credits */}
-        <div className="mt-10 flex flex-col items-center gap-1.5 text-white/80">
+        <div className="mt-8 flex flex-col items-center gap-1.5 text-white/80">
           <p className="text-[9px] font-black tracking-[0.2em] uppercase">
             DESENVOLVIDO POR MATHEUS SOUZA
           </p>
