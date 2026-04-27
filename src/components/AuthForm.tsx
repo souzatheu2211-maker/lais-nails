@@ -7,10 +7,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { showError, showSuccess } from '@/utils/toast';
 import { useNavigate } from 'react-router-dom';
+import { Eye, EyeOff } from 'lucide-react';
 
 export const AuthForm = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -55,7 +57,7 @@ export const AuthForm = () => {
     }
   };
 
-  const inputClasses = "bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-12 text-sm focus:bg-white focus:border-pink-200 focus:ring-pink-100 transition-all";
+  const inputClasses = "bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-11 text-xs focus:bg-white focus:border-pink-200 focus:ring-pink-100 transition-all w-full";
 
   return (
     <div className="space-y-4 w-full">
@@ -111,14 +113,23 @@ export const AuthForm = () => {
 
         <div className="space-y-1">
           <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-2">Senha</Label>
-          <Input
-            required
-            type="password"
-            placeholder="Sua senha..."
-            className={inputClasses}
-            value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-          />
+          <div className="relative">
+            <Input
+              required
+              type={showPassword ? "text" : "password"}
+              placeholder="Sua senha..."
+              className={inputClasses}
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-pink-500 transition-colors"
+            >
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
         </div>
 
         <Button 
