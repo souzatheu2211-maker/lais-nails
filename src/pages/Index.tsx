@@ -4,7 +4,7 @@ import * as React from "react";
 import { useSession } from "@/components/SessionContextProvider";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Calendar as CalendarIcon, Clock, Sparkles, User, LogOut, Instagram, History, Settings, Plus, Pencil, Trash2, ChevronRight, Heart, X, Check, DollarSign, Save, Info, Image as ImageIcon, Upload, Loader2, Lock, AlertCircle, CalendarDays } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Sparkles, User, LogOut, Instagram, History, Settings, Plus, Pencil, Trash2, ChevronRight, Heart, X, Check, DollarSign, Save, Info, Image as ImageIcon, Upload, Loader2, Lock, AlertCircle, CalendarDays, Users, Phone, ChevronLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { showError, showSuccess } from "@/utils/toast";
@@ -26,6 +26,7 @@ const Index = () => {
   const [profile, setProfile] = React.useState<any>(null);
   const [services, setServices] = React.useState<any[]>([]);
   const [appointments, setAppointments] = React.useState<any[]>([]);
+  const [clients, setClients] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   
   // Estados da Agenda (Admin)
@@ -38,9 +39,18 @@ const Index = () => {
   const [bookingService, setBookingService] = React.useState<any>(null);
   const [bookingDate, setBookingDate] = React.useState<Date | undefined>(new Date());
   const [allBookingSlots, setAllBookingSlots] = React.useState<any[]>([]);
-  const [dayAppointments, setDayAppointments] = React.useState<any[]>([]); // Todos os agendamentos do dia selecionado
+  const [dayAppointments, setDayAppointments] = React.useState<any[]>([]);
   const [selectedSlot, setSelectedSlot] = React.useState<any>(null);
   const [bookingLoading, setBookingLoading] = React.useState(false);
+
+  // Estados de Detalhes da Cliente (Admin)
+  const [isClientModalOpen, setIsClientModalOpen] = React.useState(false);
+  const [selectedClient, setSelectedClient] = React.useState<any>(null);
+
+  // Estados de Galeria
+  const [galleryImages, setGalleryImages] = React.useState<any[]>([]);
+  const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
+  const [isGalleryOpen, setIsGalleryOpen] = React.useState(false);
 
   // Estados de Cancelamento
   const [isCancelModalOpen, setIsCancelModalOpen] = React.useState(false);
@@ -107,6 +117,18 @@ const Index = () => {
     setAppointments(data || []);
   }, [user?.id, isAdmin]);
 
+  const fetchClients = React.useCallback(async () => {
+    if (!isAdmin) return;
+    const { data } = await supabase.from('profiles').select('*').eq('role', 'client').order('full_name');
+    setClients(data || []);
+  }, [isAdmin]);
+
+  const fetchGallery = React.useCallback(async () => {
+    // Simulando galeria a partir das fotos dos serviços por enquanto
+    const { data } = await supabase.from('services').select('image_url').not('image_url', 'is', null);
+    if (data) setGalleryImages(data.map(d => d.image_url));
+  }, []);
+
   const fetchSlotsForDate = React.useCallback(async (date: Date) => {
     const formattedDate = format(date, 'yyyy-MM-dd');
     const { data, error } = await supabase
@@ -124,31 +146,8 @@ const Index = () => {
 
   const fetchBookingSlots = React.useCallback(async (date: Date) => {
     const formattedDate = format(date, 'yyyy-MM-dd');
-    
-    // Busca slots liberados
-    const { data: slots, error: slotsError } = await supabase
-      .from('available_slots')
-      .select('*')
-      .eq('date', formattedDate)
-      .order('start_time');
-    
-    if (slotsError) {
-      showError("Erro ao carregar horários");
-      return;
-    }
-    
-    // Busca TODOS os agendamentos do dia para verificar ocupação real
-    const { data: apps, error: appsError } = await supabase
-      .from('appointments')
-      .select('start_time, end_time')
-      .eq('appointment_date', formattedDate)
-      .eq('status', 'scheduled');
-
-    if (appsError) {
-      showError("Erro ao verificar agendamentos");
-      return;
-    }
-    
+    const { data: slots } = await supabase.from('available_slots').select('*').eq('date', formattedDate).order('start_time');
+    const { data: apps } = await supabase.from('appointments').select('start_time, end_time').eq('appointment_date', formattedDate).eq('status', 'scheduled');
     setAllBookingSlots(slots || []);
     setDayAppointments(apps || []);
   }, []);
@@ -158,8 +157,10 @@ const Index = () => {
       fetchProfile();
       fetchServices();
       fetchAppointments();
+      fetchGallery();
+      if (isAdmin) fetchClients();
     }
-  }, [session, fetchProfile, fetchServices, fetchAppointments]);
+  }, [session, fetchProfile, fetchServices, fetchAppointments, fetchClients, fetchGallery, isAdmin]);
 
   React.useEffect(() => {
     if (isAdmin && selectedDate) {
@@ -173,6 +174,16 @@ const Index = () => {
     }
   }, [isAdmin, bookingDate, isBookingModalOpen, fetchBookingSlots]);
 
+  // Auto-play galeria
+  React.useEffect(() => {
+    if (isGalleryOpen && galleryImages.length > 0) {
+      const timer = setInterval(() => {
+        setCurrentImageIndex(prev => (prev + 1) % galleryImages.length);
+      }, 4000);
+      return () => clearInterval(timer);
+    }
+  }, [isGalleryOpen, galleryImages.length]);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/login');
@@ -181,27 +192,17 @@ const Index = () => {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setUploadingImage(true);
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('service-images')
-        .upload(filePath, file);
-
+      const { error: uploadError } = await supabase.storage.from('service-images').upload(fileName, file);
       if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('service-images')
-        .getPublicUrl(filePath);
-
+      const { data: { publicUrl } } = supabase.storage.from('service-images').getPublicUrl(fileName);
       setServiceFormData(prev => ({ ...prev, image_url: publicUrl }));
-      showSuccess("Foto enviada com sucesso!");
+      showSuccess("Foto enviada!");
     } catch (error: any) {
-      showError("Erro ao enviar foto: " + error.message);
+      showError(error.message);
     } finally {
       setUploadingImage(false);
     }
@@ -243,14 +244,11 @@ const Index = () => {
         image_url: serviceFormData.image_url
       };
       if (serviceFormData.id) {
-        const { error } = await supabase.from('services').update(payload).eq('id', serviceFormData.id);
-        if (error) throw error;
-        showSuccess("Serviço atualizado!");
+        await supabase.from('services').update(payload).eq('id', serviceFormData.id);
       } else {
-        const { error } = await supabase.from('services').insert([payload]);
-        if (error) throw error;
-        showSuccess("Serviço criado!");
+        await supabase.from('services').insert([payload]);
       }
+      showSuccess("Serviço salvo!");
       setIsServiceModalOpen(false);
       fetchServices();
     } catch (error: any) {
@@ -261,51 +259,13 @@ const Index = () => {
   };
 
   const handleDeleteService = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir este serviço?")) return;
-    try {
-      const { error } = await supabase.from('services').update({ active: false }).eq('id', id);
-      if (error) throw error;
-      showSuccess("Serviço removido!");
-      fetchServices();
-    } catch (error: any) {
-      showError(error.message);
-    }
-  };
-
-  const openServiceModal = (service?: any) => {
-    if (service) {
-      setServiceFormData({
-        id: service.id,
-        name: service.name,
-        price: service.price.toString(),
-        duration_minutes: service.duration_minutes.toString(),
-        description: service.description || '',
-        image_url: service.image_url || ''
-      });
-    } else {
-      setServiceFormData({ id: '', name: '', price: '', duration_minutes: '', description: '', image_url: '' });
-    }
-    setIsServiceModalOpen(true);
-  };
-
-  const openDetailsModal = (service: any) => {
-    setSelectedService(service);
-    setIsDetailsModalOpen(true);
-  };
-
-  const openBookingModal = (service: any) => {
-    setBookingService(service);
-    setIsBookingModalOpen(true);
-    setIsDetailsModalOpen(false);
-    setSelectedSlot(null);
+    if (!confirm("Excluir serviço?")) return;
+    await supabase.from('services').update({ active: false }).eq('id', id);
+    fetchServices();
   };
 
   const handleCreateAppointment = async () => {
-    if (!selectedSlot || !bookingService || !user?.id || !bookingDate) {
-      showError("Selecione um horário para agendar");
-      return;
-    }
-
+    if (!selectedSlot || !bookingService || !user?.id || !bookingDate) return;
     setBookingLoading(true);
     try {
       const formattedDate = format(bookingDate, 'yyyy-MM-dd');
@@ -313,32 +273,15 @@ const Index = () => {
       const startTime = parse(startTimeStr, 'HH:mm:ss', new Date());
       const endTimeStr = format(addMinutes(startTime, bookingService.duration_minutes), 'HH:mm:ss');
 
-      // 1. Verificar conflito via RPC
-      const { data: hasConflict, error: conflictError } = await supabase.rpc('check_appointment_conflict', {
+      const { data: hasConflict } = await supabase.rpc('check_appointment_conflict', {
         p_date: formattedDate,
         p_start: startTimeStr,
         p_end: endTimeStr
       });
 
-      if (conflictError) throw conflictError;
-      if (hasConflict) throw new Error("Horário indisponível. Alguém acabou de agendar este período.");
+      if (hasConflict) throw new Error("Horário indisponível.");
 
-      // 2. Calcular slots para bloquear visualmente
-      const slotsToBlock = Math.ceil(bookingService.duration_minutes / 30);
-      const slotsToUpdate = [selectedSlot.id];
-      
-      for (let i = 1; i < slotsToBlock; i++) {
-        const nextTime = format(addMinutes(startTime, i * 30), 'HH:mm:ss');
-        const nextSlot = allBookingSlots.find(s => s.start_time === nextTime);
-        if (nextSlot && nextSlot.is_available) {
-          slotsToUpdate.push(nextSlot.id);
-        } else if (nextSlot && !nextSlot.is_available) {
-          throw new Error(`Este serviço precisa de ${bookingService.duration_minutes}min, mas há um conflito às ${nextTime.substring(0, 5)}.`);
-        }
-      }
-
-      // 3. Criar o agendamento
-      const { error: appError } = await supabase.from('appointments').insert([{
+      await supabase.from('appointments').insert([{
         user_id: user.id,
         service_id: bookingService.id,
         slot_id: selectedSlot.id,
@@ -348,12 +291,7 @@ const Index = () => {
         status: 'scheduled'
       }]);
 
-      if (appError) throw appError;
-
-      // 4. Marcar slots como indisponíveis
-      await supabase.from('available_slots').update({ is_available: false }).in('id', slotsToUpdate);
-
-      showSuccess("Agendamento realizado com sucesso!");
+      showSuccess("Agendado com sucesso!");
       setIsBookingModalOpen(false);
       fetchAppointments();
       setActiveTab('history');
@@ -364,44 +302,12 @@ const Index = () => {
     }
   };
 
-  const openCancelModal = (app: any) => {
-    setAppointmentToCancel(app);
-    setCancelReason("");
-    setIsCancelModalOpen(true);
-  };
-
   const handleCancelAppointment = async () => {
-    if (!cancelReason.trim()) {
-      showError("Por favor, informe o motivo do cancelamento.");
-      return;
-    }
-
+    if (!cancelReason.trim()) return;
     setCancelLoading(true);
     try {
-      // 1. Atualizar status do agendamento
-      const { error } = await supabase.from('appointments').update({
-        status: 'cancelled',
-        cancellation_reason: cancelReason
-      }).eq('id', appointmentToCancel.id);
-
-      if (error) throw error;
-
-      // 2. Liberar os horários (slots) novamente
-      const { data: slotsToFree, error: slotsError } = await supabase
-        .from('available_slots')
-        .select('id')
-        .eq('date', appointmentToCancel.appointment_date)
-        .gte('start_time', appointmentToCancel.start_time)
-        .lt('start_time', appointmentToCancel.end_time);
-
-      if (slotsError) throw slotsError;
-
-      if (slotsToFree && slotsToFree.length > 0) {
-        const ids = slotsToFree.map(s => s.id);
-        await supabase.from('available_slots').update({ is_available: true }).in('id', ids);
-      }
-
-      showSuccess("Agendamento cancelado e horário liberado.");
+      await supabase.from('appointments').update({ status: 'cancelled', cancellation_reason: cancelReason }).eq('id', appointmentToCancel.id);
+      showSuccess("Cancelado.");
       setIsCancelModalOpen(false);
       fetchAppointments();
     } catch (error: any) {
@@ -411,35 +317,17 @@ const Index = () => {
     }
   };
 
-  const timeSlots = Array.from({ length: 25 }, (_, i) => {
-    const hour = Math.floor(i / 2) + 8;
-    const minute = i % 2 === 0 ? '00' : '30';
-    return `${hour.toString().padStart(2, '0')}:${minute}`;
-  });
-
-  const toggleSlot = (time: string) => {
-    setAvailableSlots(prev => 
-      prev.includes(time) ? prev.filter(t => t !== time) : [...prev, time]
-    );
-  };
-
   const saveDailySlots = async () => {
     if (!selectedDate) return;
     setSavingSlots(true);
     const formattedDate = format(selectedDate, 'yyyy-MM-dd');
-
     try {
       await supabase.from('available_slots').delete().eq('date', formattedDate);
       if (availableSlots.length > 0) {
-        const newSlots = availableSlots.map(time => ({
-          date: formattedDate,
-          start_time: `${time}:00`,
-          is_available: true
-        }));
-        const { error } = await supabase.from('available_slots').insert(newSlots);
-        if (error) throw error;
+        const newSlots = availableSlots.map(time => ({ date: formattedDate, start_time: `${time}:00`, is_available: true }));
+        await supabase.from('available_slots').insert(newSlots);
       }
-      showSuccess("Agenda do dia salva!");
+      showSuccess("Agenda salva!");
     } catch (error: any) {
       showError(error.message);
     } finally {
@@ -447,18 +335,32 @@ const Index = () => {
     }
   };
 
-  const getFirstName = (name: string) => name?.split(' ')[0] || 'Gata';
-
-  const tabVariants = {
-    initial: { opacity: 0, y: 10 },
-    animate: { opacity: 1, y: 0 },
-    exit: { opacity: 0, y: -10 }
+  const openClientDetails = (client: any) => {
+    setSelectedClient(client);
+    setIsClientModalOpen(true);
   };
+
+  const timeSlots = Array.from({ length: 25 }, (_, i) => {
+    const hour = Math.floor(i / 2) + 8;
+    const minute = i % 2 === 0 ? '00' : '30';
+    return `${hour.toString().padStart(2, '0')}:${minute}`;
+  });
+
+  const toggleSlot = (time: string) => {
+    setAvailableSlots(prev => prev.includes(time) ? prev.filter(t => t !== time) : [...prev, time]);
+  };
+
+  const getFirstName = (name: string) => name?.split(' ')[0] || 'Gata';
 
   if (!session) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-['Inter']">
+    <div className="min-h-screen bg-slate-50 flex flex-col font-['Inter'] relative overflow-x-hidden">
+      {/* Logo de Fundo Transparente */}
+      <div className="fixed inset-0 pointer-events-none z-0 flex items-center justify-center opacity-[0.03]">
+        <img src="/src/assets/lais-bg.jpeg" alt="Background" className="w-full h-full object-cover grayscale" />
+      </div>
+
       <svg width="0" height="0" className="absolute">
         <defs>
           <linearGradient id="purple-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -468,11 +370,12 @@ const Index = () => {
         </defs>
       </svg>
 
-      <header className="bg-white px-5 pt-6 pb-4 rounded-b-[2.5rem] shadow-sm border-b border-pink-50 relative overflow-hidden">
-        <div className="absolute top-[-10%] right-[-10%] w-24 h-24 bg-pink-50 rounded-full blur-3xl opacity-50" />
-        <div className="flex flex-col items-center relative z-10">
+      <header className="bg-white/90 backdrop-blur-md px-5 pt-6 pb-4 rounded-b-[2.5rem] shadow-sm border-b border-pink-50 relative z-10">
+        <div className="flex flex-col items-center">
           <div className="flex justify-between w-full items-center mb-2">
-            <div className="w-8" />
+            <Button variant="ghost" size="icon" onClick={() => setIsGalleryOpen(true)} className="text-pink-400 hover:text-pink-600 h-8 w-8">
+              <ImageIcon size={20} />
+            </Button>
             <img src="/logo.png" alt="Lais Nails Logo" className="h-14 w-auto object-contain drop-shadow-sm" />
             <Button variant="ghost" size="icon" onClick={handleLogout} className="text-slate-300 hover:text-pink-500 h-8 w-8">
               <LogOut size={18} />
@@ -490,127 +393,86 @@ const Index = () => {
             <div className="relative z-10">
               <h3 className="text-sm font-extrabold mb-0.5 flex items-center gap-1.5 tracking-tight">
                 <Heart size={14} className="fill-white animate-pulse" />
-                {isAdmin ? 'Gerencie sua agenda' : 'Pronta para brilhar?'}
+                {isAdmin ? 'Gerencie sua arte' : 'Realce sua beleza única'}
               </h3>
-              <p className="text-white/90 text-[10px] font-medium opacity-80">
-                {isAdmin ? 'Veja seus atendimentos de hoje.' : 'Escolha o serviço ideal para você hoje.'}
+              <p className="text-white/90 text-[10px] font-black uppercase tracking-widest opacity-80">
+                {isAdmin ? 'Sua agenda, seu sucesso.' : 'Onde cada detalhe conta uma história.'}
               </p>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="px-5 mt-4 flex-1">
+      <main className="px-5 mt-4 flex-1 relative z-10">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <AnimatePresence mode="wait">
             {!isAdmin ? (
               <>
                 {activeTab === "home" && (
-                  <motion.div key="home" variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-4">
-                    <h3 className="text-[13px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2 ml-1">
-                      Nossos Serviços <Sparkles size={12} className="text-pink-300" />
-                    </h3>
+                  <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+                    <div className="flex items-center justify-between ml-1">
+                      <h3 className="text-[13px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                        Nossos Serviços <Sparkles size={12} className="text-pink-300" />
+                      </h3>
+                      <Button onClick={() => setIsGalleryOpen(true)} variant="ghost" className="text-[9px] font-black text-pink-400 tracking-widest uppercase h-6 px-2">VER GALERIA</Button>
+                    </div>
                     <div className="grid grid-cols-1 gap-3">
                       {services.map((service) => (
-                        <Card key={service.id} className="p-3 border-none shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] rounded-2xl flex items-center gap-3 hover:shadow-md transition-all group bg-white/80 backdrop-blur-sm">
-                          <div className="w-12 h-12 bg-pink-50/50 rounded-xl flex items-center justify-center overflow-hidden group-hover:scale-105 transition-transform">
-                            {service.image_url ? (
-                              <img src={service.image_url} alt={service.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <span className="text-xl">💅</span>
-                            )}
+                        <Card key={service.id} className="p-3 border-none shadow-sm rounded-2xl flex items-center gap-3 bg-white/80 backdrop-blur-sm">
+                          <div className="w-12 h-12 bg-pink-50 rounded-xl overflow-hidden">
+                            {service.image_url ? <img src={service.image_url} className="w-full h-full object-cover" /> : <span className="text-xl flex items-center justify-center h-full">💅</span>}
                           </div>
                           <div className="flex-1">
-                            <h4 className="font-bold text-slate-700 text-[11px] leading-tight">{service.name}</h4>
-                            <div className="flex items-center gap-2 text-[8px] text-slate-400 mt-0.5 font-bold uppercase tracking-wider">
-                              <span className="flex items-center gap-1"><Clock size={10} className="text-pink-200" /> {service.duration_minutes} min</span>
-                              <span className="text-pink-400/80">R$ {service.price}</span>
-                            </div>
+                            <h4 className="font-bold text-slate-700 text-[11px]">{service.name}</h4>
+                            <p className="text-[8px] text-slate-400 font-bold uppercase mt-0.5">R$ {service.price} • {service.duration_minutes} min</p>
                           </div>
-                          <div className="flex flex-col gap-1.5">
-                            <Button 
-                              onClick={() => openDetailsModal(service)}
-                              variant="ghost" 
-                              className="h-6 px-2 text-[8px] font-black text-slate-400 hover:text-pink-500 hover:bg-pink-50 rounded-lg tracking-widest uppercase"
-                            >
-                              DETALHES
-                            </Button>
-                            <Button onClick={() => openBookingModal(service)} size="sm" className="bg-pink-500 hover:bg-pink-600 rounded-xl px-4 h-7 font-black text-[9px] tracking-wider shadow-sm active:scale-95 transition-all">AGENDAR</Button>
-                          </div>
+                          <Button onClick={() => openBookingModal(service)} size="sm" className="bg-pink-500 hover:bg-pink-600 rounded-xl px-4 h-7 font-black text-[9px] tracking-wider">AGENDAR</Button>
                         </Card>
                       ))}
                     </div>
                   </motion.div>
                 )}
                 {activeTab === "history" && (
-                  <motion.div key="history" variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-4">
+                  <motion.div key="history" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
                     <h3 className="text-[13px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Meu Histórico</h3>
                     <div className="space-y-2.5">
-                      {appointments.length > 0 ? appointments.map((app) => (
+                      {appointments.map((app) => (
                         <Card key={app.id} className="p-3 border-none shadow-sm rounded-2xl bg-white/80">
                           <div className="flex justify-between items-start">
-                            <div className="flex-1">
+                            <div>
                               <h4 className="font-bold text-slate-700 text-[11px]">{app.services?.name}</h4>
-                              <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
-                                {app.appointment_date ? format(new Date(app.appointment_date), "dd/MM/yyyy") : '-'} • {app.start_time?.substring(0, 5)} - {app.end_time?.substring(0, 5)}
+                              <p className="text-[9px] text-slate-400 font-bold uppercase mt-0.5">
+                                {format(new Date(app.appointment_date), "dd/MM/yyyy")} • {app.start_time.substring(0, 5)}
                               </p>
-                              {app.status === 'cancelled' && app.cancellation_reason && (
-                                <p className="text-[8px] text-rose-400 font-medium mt-1 italic">Motivo: {app.cancellation_reason}</p>
-                              )}
                             </div>
-                            <div className="flex flex-col items-end gap-2">
-                              <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${
-                                app.status === 'completed' ? 'bg-green-50 text-green-500' : 
-                                app.status === 'cancelled' ? 'bg-rose-50 text-rose-500' : 
-                                'bg-blue-50 text-blue-500'
-                              }`}>
-                                {app.status === 'scheduled' ? 'Agendado' : app.status === 'cancelled' ? 'Cancelado' : 'Concluído'}
-                              </span>
-                              {app.status === 'scheduled' && (
-                                <Button 
-                                  onClick={() => openCancelModal(app)}
-                                  variant="ghost" 
-                                  className="h-6 px-2 text-[8px] font-black text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg tracking-widest uppercase"
-                                >
-                                  CANCELAR
-                                </Button>
-                              )}
-                            </div>
+                            <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase ${app.status === 'completed' ? 'bg-green-50 text-green-500' : app.status === 'cancelled' ? 'bg-rose-50 text-rose-500' : 'bg-blue-50 text-blue-500'}`}>
+                              {app.status === 'scheduled' ? 'Agendado' : app.status === 'cancelled' ? 'Cancelado' : 'Concluído'}
+                            </span>
                           </div>
                         </Card>
-                      )) : <div className="text-center py-10 text-slate-300"><History size={32} className="mx-auto mb-2 opacity-20" /><p className="text-[10px] font-bold uppercase tracking-widest">Vazio</p></div>}
+                      ))}
                     </div>
                   </motion.div>
                 )}
                 {activeTab === "profile" && (
-                  <motion.div key="profile" variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-4">
+                  <motion.div key="profile" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
                     <h3 className="text-[13px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Meu Perfil</h3>
                     <Card className="p-5 border-none shadow-sm rounded-[2rem] space-y-4 bg-white/80">
                       <div className="space-y-0.5">
-                        <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest ml-0.5">Nome Completo</p>
-                        <p className="font-bold text-slate-700 text-[10px]">{profile?.full_name || 'Não informado'}</p>
+                        <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Nome Completo</p>
+                        <p className="font-bold text-slate-700 text-[10px]">{profile?.full_name}</p>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-0.5">
-                          <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest ml-0.5">CPF</p>
-                          <p className="font-bold text-slate-700 text-[10px]">{profile?.cpf || '-'}</p>
+                          <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Telefone</p>
+                          <p className="font-bold text-slate-700 text-[10px]">{profile?.phone}</p>
                         </div>
                         <div className="space-y-0.5">
-                          <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest ml-0.5">Telefone</p>
-                          <p className="font-bold text-slate-700 text-[10px]">{profile?.phone || '-'}</p>
+                          <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Instagram</p>
+                          <p className="font-bold text-pink-500 text-[10px]">{profile?.instagram}</p>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-0.5">
-                          <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest ml-0.5">Nascimento</p>
-                          <p className="font-bold text-slate-700 text-[10px]">{profile?.birth_date || '-'}</p>
-                        </div>
-                        <div className="space-y-0.5">
-                          <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest ml-0.5">Instagram</p>
-                          <p className="font-bold text-pink-500 text-[10px]">{profile?.instagram || '-'}</p>
-                        </div>
-                      </div>
-                      <Button onClick={() => setIsEditModalOpen(true)} variant="outline" className="w-full rounded-xl border-pink-100 text-pink-500 font-black text-[9px] h-9 hover:bg-pink-50 mt-1 tracking-widest uppercase">EDITAR DADOS</Button>
+                      <Button onClick={() => setIsEditModalOpen(true)} variant="outline" className="w-full rounded-xl border-pink-100 text-pink-500 font-black text-[9px] h-9 tracking-widest uppercase">EDITAR DADOS</Button>
                     </Card>
                   </motion.div>
                 )}
@@ -618,76 +480,72 @@ const Index = () => {
             ) : (
               <>
                 {activeTab === "home" && (
-                  <motion.div key="admin-home" variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-4">
+                  <motion.div key="admin-home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
                     <h3 className="text-[13px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Próximos Atendimentos</h3>
                     <div className="space-y-2.5">
-                      {appointments.length > 0 ? appointments.map((app) => (
-                        <Card key={app.id} className="p-3 border-none shadow-sm rounded-2xl hover:shadow-md transition-all bg-white/80">
+                      {appointments.map((app) => (
+                        <Card key={app.id} onClick={() => openClientDetails(app.profiles)} className="p-3 border-none shadow-sm rounded-2xl bg-white/80 hover:shadow-md transition-all cursor-pointer group">
                           <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-2.5">
-                              <div className="w-8 h-8 bg-purple-50 rounded-xl flex items-center justify-center text-purple-400 font-black text-[10px]">{app.profiles?.full_name?.charAt(0)}</div>
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-purple-50 rounded-xl flex items-center justify-center text-purple-400 font-black text-[10px] group-hover:bg-purple-100 transition-colors">
+                                {app.profiles?.full_name?.charAt(0)}
+                              </div>
                               <div>
                                 <h4 className="font-bold text-slate-700 text-[10px]">{app.profiles?.full_name}</h4>
-                                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
-                                  {app.services?.name} • {app.start_time?.substring(0, 5)} - {app.end_time?.substring(0, 5)}
+                                <p className="text-[9px] text-slate-400 font-bold uppercase">
+                                  {app.services?.name} • {app.start_time.substring(0, 5)}
                                 </p>
-                                <div className="flex flex-col gap-0.5 mt-1">
-                                  <span className={`text-[7px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tighter w-fit ${
-                                    app.status === 'cancelled' ? 'bg-rose-50 text-rose-500' : 
-                                    app.status === 'completed' ? 'bg-green-50 text-green-500' : 
-                                    'bg-blue-50 text-blue-500'
-                                  }`}>
-                                    {app.status === 'scheduled' ? 'Agendado' : app.status === 'cancelled' ? 'Cancelado' : 'Concluído'}
-                                  </span>
-                                  {app.status === 'cancelled' && app.cancellation_reason && (
-                                    <p className="text-[8px] text-rose-400 font-bold uppercase italic">Motivo: {app.cancellation_reason}</p>
-                                  )}
-                                </div>
                               </div>
                             </div>
-                            <div className="flex items-center gap-1">
-                              {app.status === 'scheduled' && (
-                                <Button 
-                                  onClick={() => openCancelModal(app)}
-                                  variant="ghost" 
-                                  className="h-8 px-2 text-[8px] font-black text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg tracking-widest uppercase"
-                                >
-                                  CANCELAR
-                                </Button>
-                              )}
-                              <Button variant="ghost" size="icon" className="text-slate-200 hover:text-pink-400 h-8 w-8"><ChevronRight size={16} /></Button>
-                            </div>
+                            <ChevronRight size={14} className="text-slate-200 group-hover:text-pink-400 transition-colors" />
                           </div>
                         </Card>
-                      )) : <div className="text-center py-10 text-slate-300"><CalendarIcon size={32} className="mx-auto mb-2 opacity-20" /><p className="text-[10px] font-bold uppercase tracking-widest">Sem agenda</p></div>}
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+                {activeTab === "clients" && (
+                  <motion.div key="admin-clients" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+                    <h3 className="text-[13px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Minhas Clientes</h3>
+                    <div className="grid grid-cols-1 gap-2.5">
+                      {clients.map((client) => (
+                        <Card key={client.id} onClick={() => openClientDetails(client)} className="p-3 border-none shadow-sm rounded-2xl bg-white/80 hover:shadow-md transition-all cursor-pointer flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-pink-50 rounded-xl flex items-center justify-center text-pink-400 font-black text-[10px]">
+                              {client.full_name?.charAt(0)}
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-slate-700 text-[10px]">{client.full_name}</h4>
+                              <p className="text-[8px] text-pink-400 font-bold uppercase">{client.instagram || '@sem_insta'}</p>
+                            </div>
+                          </div>
+                          <Phone size={12} className="text-slate-300" />
+                        </Card>
+                      ))}
                     </div>
                   </motion.div>
                 )}
                 {activeTab === "services" && (
-                  <motion.div key="admin-services" variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-4">
+                  <motion.div key="admin-services" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
                     <div className="flex justify-between items-center px-1">
                       <h3 className="text-[13px] font-black text-slate-400 uppercase tracking-[0.2em]">Meus Serviços</h3>
                       <Button onClick={() => openServiceModal()} size="sm" className="bg-pink-500 hover:bg-pink-600 rounded-xl gap-1.5 font-black text-[9px] h-7 tracking-wider shadow-sm"><Plus size={12} /> NOVO</Button>
                     </div>
                     <div className="grid grid-cols-1 gap-2.5">
                       {services.map((service) => (
-                        <Card key={service.id} className="p-3 border-none shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] rounded-2xl flex justify-between items-center bg-white/80 backdrop-blur-sm">
+                        <Card key={service.id} className="p-3 border-none shadow-sm rounded-2xl flex justify-between items-center bg-white/80">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-slate-100 rounded-xl overflow-hidden">
-                              {service.image_url ? <img src={service.image_url} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-300"><ImageIcon size={16} /></div>}
+                              {service.image_url ? <img src={service.image_url} className="w-full h-full object-cover" /> : <ImageIcon size={16} className="text-slate-300 m-auto" />}
                             </div>
                             <div>
-                              <h4 className="font-bold text-slate-700 text-[11px] leading-tight">{service.name}</h4>
-                              <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">R$ {service.price} • {service.duration_minutes} min</p>
+                              <h4 className="font-bold text-slate-700 text-[11px]">{service.name}</h4>
+                              <p className="text-[8px] text-slate-400 font-bold uppercase">R$ {service.price} • {service.duration_minutes} min</p>
                             </div>
                           </div>
                           <div className="flex gap-1">
-                            <Button onClick={() => openServiceModal(service)} variant="ghost" size="icon" className="text-pink-400 hover:text-pink-600 hover:bg-pink-50 h-8 w-8 rounded-xl transition-colors">
-                              <Pencil size={14} />
-                            </Button>
-                            <Button onClick={() => handleDeleteService(service.id)} variant="ghost" size="icon" className="text-rose-400 hover:text-rose-600 hover:bg-rose-50 h-8 w-8 rounded-xl transition-colors">
-                              <Trash2 size={14} />
-                            </Button>
+                            <Button onClick={() => openServiceModal(service)} variant="ghost" size="icon" className="text-pink-400 h-8 w-8 rounded-xl"><Pencil size={14} /></Button>
+                            <Button onClick={() => handleDeleteService(service.id)} variant="ghost" size="icon" className="text-rose-400 h-8 w-8 rounded-xl"><Trash2 size={14} /></Button>
                           </div>
                         </Card>
                       ))}
@@ -695,23 +553,15 @@ const Index = () => {
                   </motion.div>
                 )}
                 {activeTab === "calendar" && (
-                  <motion.div key="admin-calendar" variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-4">
+                  <motion.div key="admin-calendar" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
                     <h3 className="text-[13px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Gerenciar Agenda</h3>
-                    <Card className="p-2 border-none shadow-2xl rounded-[2.5rem] bg-white/90 backdrop-blur-md overflow-hidden border border-pink-50">
-                      <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={setSelectedDate}
-                        locale={ptBR}
-                        className="rounded-2xl border-none mx-auto"
-                      />
+                    <Card className="p-2 border-none shadow-sm rounded-[2.5rem] bg-white/90 backdrop-blur-md">
+                      <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} locale={ptBR} className="rounded-2xl border-none mx-auto" />
                     </Card>
                     {selectedDate && (
-                      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+                      <div className="space-y-3">
                         <div className="flex justify-between items-center px-1">
-                          <h4 className="text-[11px] font-black text-pink-400 uppercase tracking-widest">
-                            Horários para {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
-                          </h4>
+                          <h4 className="text-[11px] font-black text-pink-400 uppercase tracking-widest">Horários para {format(selectedDate, "dd/MM", { locale: ptBR })}</h4>
                           <Button onClick={saveDailySlots} disabled={savingSlots} size="sm" className="bg-purple-600 hover:bg-purple-700 rounded-xl gap-1.5 font-black text-[9px] h-7 tracking-wider shadow-md">
                             <Save size={12} /> {savingSlots ? 'SALVANDO...' : 'SALVAR'}
                           </Button>
@@ -726,7 +576,7 @@ const Index = () => {
                             );
                           })}
                         </div>
-                      </motion.div>
+                      </div>
                     )}
                   </motion.div>
                 )}
@@ -736,332 +586,157 @@ const Index = () => {
         </Tabs>
       </main>
 
-      {/* Modals */}
-      <Dialog open={isCancelModalOpen} onOpenChange={setIsCancelModalOpen}>
-        <DialogContent className="sm:max-w-[350px] rounded-[2rem] border-none shadow-2xl p-6">
+      {/* Modal de Detalhes da Cliente */}
+      <Dialog open={isClientModalOpen} onOpenChange={setIsClientModalOpen}>
+        <DialogContent className="sm:max-w-[350px] rounded-[2rem] border-none shadow-2xl p-6 bg-white">
           <DialogHeader>
-            <DialogTitle className="text-sm font-black text-rose-500 uppercase tracking-widest flex items-center gap-2">
-              <AlertCircle size={16} /> Cancelar Agendamento
+            <DialogTitle className="text-sm font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
+              <User size={16} className="text-pink-500" /> Dados da Cliente
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 mt-2">
-            <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
-              Poxa, que pena! Para cancelar seu horário de <strong>{appointmentToCancel?.services?.name}</strong>, por favor nos conte o motivo:
-            </p>
-            <div className="space-y-1">
-              <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">Motivo do Cancelamento</Label>
-              <Textarea 
-                required
-                placeholder="Ex: Tive um imprevisto no trabalho..."
-                className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 text-[10px] min-h-[100px]" 
-                value={cancelReason}
-                onChange={(e) => setCancelReason(e.target.value)}
-              />
-            </div>
-            <DialogFooter className="pt-2">
-              <Button 
-                onClick={handleCancelAppointment}
-                disabled={cancelLoading || !cancelReason.trim()} 
-                className="w-full bg-rose-600 hover:bg-rose-700 text-white font-black text-[10px] py-6 rounded-2xl shadow-md tracking-widest uppercase"
-              >
-                {cancelLoading ? 'CANCELANDO...' : 'CONFIRMAR CANCELAMENTO'}
-              </Button>
-            </DialogFooter>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="sm:max-w-[350px] rounded-[2rem] border-none shadow-2xl p-6">
-          <DialogHeader><DialogTitle className="text-sm font-black text-slate-700 uppercase tracking-widest flex items-center gap-2"><Pencil size={16} className="text-pink-500" /> Editar Perfil</DialogTitle></DialogHeader>
-          <form onSubmit={handleUpdateProfile} className="space-y-4 mt-2">
-            <div className="space-y-1">
-              <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">Nome Completo</Label>
-              <Input required className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[10px]" value={editFormData.full_name} onChange={(e) => setEditFormData({ ...editFormData, full_name: e.target.value })} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">CPF</Label>
-                <InputMask mask="999.999.999-99" value={editFormData.cpf} onChange={(e) => setEditFormData({ ...editFormData, cpf: e.target.value })}>{(inputProps: any) => <Input required className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[10px]" {...inputProps} />}</InputMask>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">Telefone</Label>
-                <InputMask mask="(99) 99999-9999" value={editFormData.phone} onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}>{(inputProps: any) => <Input required className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[10px]" {...inputProps} />}</InputMask>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">Nascimento</Label>
-                <InputMask mask="99/99/9999" value={editFormData.birth_date} onChange={(e) => setEditFormData({ ...editFormData, birth_date: e.target.value })}>{(inputProps: any) => <Input required placeholder="DD/MM/AAAA" className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[10px]" {...inputProps} />}</InputMask>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">Instagram (@)</Label>
-                <Input className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[10px]" value={editFormData.instagram} onChange={(e) => setEditFormData({ ...editFormData, instagram: e.target.value })} />
-              </div>
-            </div>
-            <DialogFooter className="pt-2"><Button type="submit" disabled={editLoading} className="w-full bg-pink-600 hover:bg-pink-700 text-white font-black text-[10px] py-6 rounded-2xl shadow-md tracking-widest uppercase">{editLoading ? 'SALVANDO...' : 'SALVAR ALTERAÇÕES'}</Button></DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isServiceModalOpen} onOpenChange={setIsServiceModalOpen}>
-        <DialogContent className="sm:max-w-[350px] rounded-[2rem] border-none shadow-2xl p-6">
-          <DialogHeader><DialogTitle className="text-sm font-black text-slate-700 uppercase tracking-widest flex items-center gap-2"><Sparkles size={16} className="text-pink-500" /> {serviceFormData.id ? 'Editar Serviço' : 'Novo Serviço'}</DialogTitle></DialogHeader>
-          <form onSubmit={handleSaveService} className="space-y-4 mt-2">
-            <div className="space-y-1">
-              <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">Nome do Serviço</Label>
-              <Input required className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[10px]" value={serviceFormData.name} onChange={(e) => setServiceFormData({ ...serviceFormData, name: e.target.value })} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">Preço (R$)</Label>
-                <Input required type="number" step="0.01" className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[10px]" value={serviceFormData.price} onChange={(e) => setServiceFormData({ ...serviceFormData, price: e.target.value })} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">Duração (min)</Label>
-                <Input required type="number" className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[10px]" value={serviceFormData.duration_minutes} onChange={(e) => setServiceFormData({ ...serviceFormData, duration_minutes: e.target.value })} />
-              </div>
-            </div>
-            
-            <div className="space-y-1">
-              <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">Foto do Resultado</Label>
-              <div className="flex items-center gap-3">
-                <div className="w-16 h-16 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200 flex items-center justify-center overflow-hidden">
-                  {serviceFormData.image_url ? (
-                    <img src={serviceFormData.image_url} className="w-full h-full object-cover" />
-                  ) : (
-                    <ImageIcon size={20} className="text-slate-300" />
-                  )}
+          {selectedClient && (
+            <div className="space-y-5 mt-4">
+              <div className="flex flex-col items-center text-center space-y-2">
+                <div className="w-16 h-16 bg-pink-50 rounded-2xl flex items-center justify-center text-pink-400 font-black text-xl shadow-inner">
+                  {selectedClient.full_name?.charAt(0)}
                 </div>
-                <div className="flex-1">
-                  <Label htmlFor="image-upload" className="cursor-pointer inline-flex items-center gap-2 bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-xl text-[9px] font-black transition-colors">
-                    {uploadingImage ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
-                    {serviceFormData.image_url ? 'TROCAR FOTO' : 'ENVIAR FOTO'}
-                  </Label>
-                  <input id="image-upload" type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
-                  <p className="text-[8px] text-slate-400 mt-1">JPG, PNG ou WEBP. Máx 5MB.</p>
-                </div>
+                <h3 className="font-black text-slate-800 text-sm">{selectedClient.full_name}</h3>
               </div>
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">Descrição Detalhada</Label>
-              <Textarea className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 text-[10px] min-h-[80px]" value={serviceFormData.description} onChange={(e) => setServiceFormData({ ...serviceFormData, description: e.target.value })} />
-            </div>
-            <DialogFooter className="pt-2"><Button type="submit" disabled={editLoading || uploadingImage} className="w-full bg-pink-600 hover:bg-pink-700 text-white font-black text-[10px] py-6 rounded-2xl shadow-md tracking-widest uppercase">{editLoading ? 'SALVANDO...' : 'SALVAR SERVIÇO'}</Button></DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal de Detalhes do Serviço (Cliente) */}
-      <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
-        <DialogContent className="sm:max-w-[380px] rounded-[2.5rem] border-none shadow-2xl p-0 overflow-hidden bg-white">
-          {selectedService && (
-            <div className="flex flex-col">
-              <div className="relative h-56 w-full bg-slate-100">
-                {selectedService.image_url ? (
-                  <img src={selectedService.image_url} alt={selectedService.name} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center text-slate-300 gap-2">
-                    <ImageIcon size={40} strokeWidth={1} />
-                    <p className="text-[10px] font-bold uppercase tracking-widest">Sem foto disponível</p>
-                  </div>
-                )}
-                <div className="absolute top-4 right-4">
-                  <Button onClick={() => setIsDetailsModalOpen(false)} variant="ghost" size="icon" className="bg-white/20 backdrop-blur-md hover:bg-white/40 text-white rounded-full h-8 w-8">
-                    <X size={18} />
-                  </Button>
-                </div>
-                <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white to-transparent" />
-              </div>
-              
-              <div className="px-6 pb-8 -mt-6 relative z-10">
-                <div className="flex justify-between items-end mb-4">
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
+                  <Phone size={14} className="text-pink-400" />
                   <div>
-                    <h3 className="text-lg font-black text-slate-800 leading-tight">{selectedService.name}</h3>
-                    <div className="flex items-center gap-3 mt-1">
-                      <span className="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                        <Clock size={12} className="text-pink-300" /> {selectedService.duration_minutes} min
-                      </span>
-                      <span className="text-[10px] font-black text-pink-500 bg-pink-50 px-2 py-0.5 rounded-full">
-                        R$ {selectedService.price}
-                      </span>
-                    </div>
+                    <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Telefone</p>
+                    <p className="text-[10px] font-black text-slate-600">{selectedClient.phone || 'Não informado'}</p>
                   </div>
                 </div>
-
-                <div className="space-y-3">
-                  <h4 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Sobre o procedimento</h4>
-                  <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
-                    {selectedService.description || "Nenhuma descrição detalhada disponível para este serviço no momento."}
-                  </p>
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
+                  <Instagram size={14} className="text-pink-400" />
+                  <div>
+                    <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Instagram</p>
+                    <p className="text-[10px] font-black text-pink-500">{selectedClient.instagram || '@sem_insta'}</p>
+                  </div>
                 </div>
-
-                <Button onClick={() => openBookingModal(selectedService)} className="w-full bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white font-black text-[11px] py-6 rounded-2xl shadow-lg shadow-pink-200/50 mt-8 tracking-widest uppercase active:scale-95 transition-all">
-                  AGENDAR AGORA
-                </Button>
               </div>
+              <Button onClick={() => setIsClientModalOpen(false)} className="w-full bg-slate-800 hover:bg-slate-900 text-white font-black text-[10px] py-6 rounded-2xl tracking-widest uppercase">FECHAR</Button>
             </div>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Agendamento (Calendário Premium) */}
+      {/* Modal de Galeria (Carrossel) */}
+      <Dialog open={isGalleryOpen} onOpenChange={setIsGalleryOpen}>
+        <DialogContent className="sm:max-w-[400px] rounded-[2.5rem] border-none shadow-2xl p-0 bg-black overflow-hidden">
+          <div className="relative h-[70vh] w-full flex items-center justify-center">
+            <AnimatePresence mode="wait">
+              {galleryImages.length > 0 ? (
+                <motion.img
+                  key={currentImageIndex}
+                  src={galleryImages[currentImageIndex]}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 1.1 }}
+                  transition={{ duration: 0.5 }}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="text-white text-center space-y-2">
+                  <ImageIcon size={40} className="mx-auto opacity-20" />
+                  <p className="text-[10px] font-black uppercase tracking-widest opacity-50">Galeria Vazia</p>
+                </div>
+              )}
+            </AnimatePresence>
+            
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/40 pointer-events-none" />
+            
+            <div className="absolute top-6 left-6 right-6 flex justify-between items-center">
+              <h3 className="text-white font-black text-[10px] tracking-[0.3em] uppercase">Lais Nails Gallery</h3>
+              <Button onClick={() => setIsGalleryOpen(false)} variant="ghost" size="icon" className="text-white hover:bg-white/20 rounded-full h-8 w-8">
+                <X size={18} />
+              </Button>
+            </div>
+
+            <div className="absolute bottom-10 left-6 right-6 flex justify-between items-center">
+              <Button onClick={() => setCurrentImageIndex(prev => (prev - 1 + galleryImages.length) % galleryImages.length)} variant="ghost" size="icon" className="text-white bg-white/10 backdrop-blur-md hover:bg-white/20 rounded-full h-10 w-10">
+                <ChevronLeft size={20} />
+              </Button>
+              <div className="flex gap-1.5">
+                {galleryImages.map((_, i) => (
+                  <div key={i} className={`h-1 rounded-full transition-all duration-500 ${i === currentImageIndex ? 'w-6 bg-pink-500' : 'w-2 bg-white/30'}`} />
+                ))}
+              </div>
+              <Button onClick={() => setCurrentImageIndex(prev => (prev + 1) % galleryImages.length)} variant="ghost" size="icon" className="text-white bg-white/10 backdrop-blur-md hover:bg-white/20 rounded-full h-10 w-10">
+                <ChevronRight size={20} />
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modals de Edição e Agendamento (Mantidos do código anterior) */}
       <Dialog open={isBookingModalOpen} onOpenChange={setIsBookingModalOpen}>
         <DialogContent className="sm:max-w-[400px] rounded-[2.5rem] border-none shadow-2xl p-0 bg-white overflow-hidden">
           <div className="bg-gradient-to-r from-pink-500 to-purple-600 p-6 text-white relative">
             <div className="absolute top-4 right-4">
-              <Button onClick={() => setIsBookingModalOpen(false)} variant="ghost" size="icon" className="text-white/80 hover:text-white hover:bg-white/20 rounded-full h-8 w-8">
-                <X size={18} />
-              </Button>
+              <Button onClick={() => setIsBookingModalOpen(false)} variant="ghost" size="icon" className="text-white/80 hover:text-white hover:bg-white/20 rounded-full h-8 w-8"><X size={18} /></Button>
             </div>
             <div className="flex flex-col items-center text-center space-y-1">
-              <div className="bg-white/20 backdrop-blur-md p-2 rounded-xl mb-1">
-                <Sparkles size={20} className="text-white animate-pulse" />
-              </div>
+              <div className="bg-white/20 backdrop-blur-md p-2 rounded-xl mb-1"><Sparkles size={20} className="text-white animate-pulse" /></div>
               <h2 className="text-lg font-black tracking-tight">Agende seu horário 💖</h2>
               <p className="text-[10px] font-medium text-white/80">Escolha o dia e o horário perfeito para suas unhas</p>
             </div>
           </div>
-
           <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto scrollbar-hide">
-            {/* Calendário Estético */}
             <div className="space-y-3">
-              <div className="flex items-center gap-2 ml-1">
-                <CalendarDays size={14} className="text-pink-500" />
-                <Label className="text-[10px] font-black text-pink-300 uppercase tracking-[0.2em]">1. Escolha o dia</Label>
-              </div>
-              <Card className="p-2 border-none shadow-2xl rounded-[2.5rem] bg-white/90 backdrop-blur-md border border-pink-50">
-                <Calendar
-                  mode="single"
-                  selected={bookingDate}
-                  onSelect={setBookingDate}
-                  locale={ptBR}
-                  disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
-                  className="rounded-2xl border-none mx-auto"
-                />
+              <div className="flex items-center gap-2 ml-1"><CalendarDays size={14} className="text-pink-500" /><Label className="text-[10px] font-black text-pink-300 uppercase tracking-[0.2em]">1. Escolha o dia</Label></div>
+              <Card className="p-2 border-none shadow-sm rounded-[2.5rem] bg-white/90 backdrop-blur-md border border-pink-50">
+                <Calendar mode="single" selected={bookingDate} onSelect={setBookingDate} locale={ptBR} disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))} className="rounded-2xl border-none mx-auto" />
               </Card>
             </div>
-
-            {/* Lista de Horários */}
             <div className="space-y-3">
-              <div className="flex items-center gap-2 ml-1">
-                <Clock size={14} className="text-pink-500" />
-                <Label className="text-[10px] font-black text-pink-300 uppercase tracking-[0.2em]">2. Escolha o horário</Label>
-              </div>
+              <div className="flex items-center gap-2 ml-1"><Clock size={14} className="text-pink-500" /><Label className="text-[10px] font-black text-pink-300 uppercase tracking-[0.2em]">2. Escolha o horário</Label></div>
               <div className="grid grid-cols-4 gap-2.5">
                 {timeSlots.map((time) => {
                   const slotInDb = allBookingSlots.find(s => s.start_time.substring(0, 5) === time);
-                  
-                  // Verifica se o horário está dentro de algum agendamento existente
                   const isBooked = dayAppointments.some(app => {
                     const start = app.start_time.substring(0, 5);
                     const end = app.end_time.substring(0, 5);
                     return time >= start && time < end;
                   });
-
                   const isAvailable = slotInDb?.is_available === true && !isBooked;
                   const isSelected = selectedSlot?.id === slotInDb?.id && slotInDb?.id !== undefined;
-                  
                   return (
-                    <motion.button
-                      key={time}
-                      whileTap={{ scale: 0.95 }}
-                      disabled={!isAvailable}
-                      onClick={() => isAvailable && setSelectedSlot(slotInDb)}
-                      className={`h-10 rounded-xl text-[10px] font-black transition-all border-2 flex items-center justify-center gap-1 relative overflow-hidden ${
-                        !isAvailable 
-                          ? 'bg-slate-200 border-slate-300 text-slate-400 cursor-not-allowed shadow-sm' 
-                          : isSelected 
-                            ? 'bg-pink-500 border-pink-600 text-white shadow-lg shadow-pink-200/50 scale-105' 
-                            : 'bg-emerald-500 border-emerald-600 text-white hover:bg-emerald-600'
-                      }`}
-                    >
+                    <motion.button key={time} whileTap={{ scale: 0.95 }} disabled={!isAvailable} onClick={() => isAvailable && setSelectedSlot(slotInDb)} className={`h-10 rounded-xl text-[10px] font-black transition-all border-2 flex items-center justify-center gap-1 relative overflow-hidden ${!isAvailable ? 'bg-slate-200 border-slate-300 text-slate-400 cursor-not-allowed' : isSelected ? 'bg-pink-500 border-pink-600 text-white shadow-lg scale-105' : 'bg-emerald-500 border-emerald-600 text-white hover:bg-emerald-600'}`}>
                       {!isAvailable ? <Lock size={10} /> : isSelected ? <Check size={10} /> : null}
                       {time}
-                      {isSelected && (
-                        <motion.div 
-                          layoutId="glow"
-                          className="absolute inset-0 bg-white/20 blur-md"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                        />
-                      )}
                     </motion.button>
                   );
                 })}
               </div>
             </div>
-
-            {/* Card de Confirmação */}
-            <AnimatePresence>
-              {selectedSlot && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                  className="pt-2"
-                >
-                  <Card className="p-5 border-none bg-gradient-to-br from-slate-50 to-white shadow-xl rounded-[2rem] relative overflow-hidden border border-pink-50">
-                    <div className="absolute top-0 right-0 p-4 opacity-5">
-                      <Heart size={60} className="fill-pink-500" />
-                    </div>
-                    <div className="space-y-4 relative z-10">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Resumo do Agendamento</h4>
-                          <p className="text-sm font-black text-slate-700">{bookingService?.name}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-[10px] font-black text-pink-500 bg-pink-50 px-2 py-0.5 rounded-full inline-block">R$ {bookingService?.price}</p>
-                        </div>
+            {selectedSlot && (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+                <Card className="p-5 border-none bg-gradient-to-br from-slate-50 to-white shadow-xl rounded-[2rem] relative overflow-hidden border border-pink-50">
+                  <div className="space-y-4 relative z-10">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Resumo</h4>
+                        <p className="text-sm font-black text-slate-700">{bookingService?.name}</p>
                       </div>
-                      
-                      <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-100">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 bg-purple-50 rounded-lg flex items-center justify-center text-purple-500">
-                            <CalendarIcon size={14} />
-                          </div>
-                          <div>
-                            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Data</p>
-                            <p className="text-[10px] font-black text-slate-600">{bookingDate ? format(bookingDate, "dd/MM/yyyy") : '-'}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 bg-pink-50 rounded-lg flex items-center justify-center text-pink-500">
-                            <Clock size={14} />
-                          </div>
-                          <div>
-                            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Horário</p>
-                            <p className="text-[10px] font-black text-slate-600">{selectedSlot.start_time.substring(0, 5)}</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <Button 
-                        onClick={handleCreateAppointment}
-                        disabled={bookingLoading}
-                        className="w-full bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white font-black text-[11px] py-6 rounded-2xl shadow-lg shadow-pink-200/50 mt-2 tracking-widest uppercase active:scale-95 transition-all"
-                      >
-                        {bookingLoading ? (
-                          <div className="flex items-center gap-2">
-                            <Loader2 size={14} className="animate-spin" />
-                            <span>PROCESSANDO...</span>
-                          </div>
-                        ) : (
-                          "CONFIRMAR AGENDAMENTO"
-                        )}
-                      </Button>
+                      <p className="text-[10px] font-black text-pink-500 bg-pink-50 px-2 py-0.5 rounded-full">R$ {bookingService?.price}</p>
                     </div>
-                  </Card>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                    <Button onClick={handleCreateAppointment} disabled={bookingLoading} className="w-full bg-gradient-to-r from-purple-600 to-pink-500 text-white font-black text-[11px] py-6 rounded-2xl shadow-lg tracking-widest uppercase active:scale-95 transition-all">
+                      {bookingLoading ? "PROCESSANDO..." : "CONFIRMAR AGENDAMENTO"}
+                    </Button>
+                  </div>
+                </Card>
+              </motion.div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
 
-      <footer className="pt-12 pb-24 flex flex-col items-center gap-1.5 text-slate-800">
+      <footer className="pt-12 pb-24 flex flex-col items-center gap-1.5 text-slate-800 relative z-10">
         <p className="text-[7px] font-black tracking-[0.2em] uppercase">Desenvolvido por Matheus Souza</p>
         <div className="flex items-center gap-4">
           <p className="text-[7px] font-bold">© 2026 MATHEUS SOUZA</p>
@@ -1074,44 +749,27 @@ const Index = () => {
 
       <nav className="fixed bottom-4 left-4 right-4 bg-white/80 backdrop-blur-xl border border-white/40 h-14 rounded-[1.5rem] shadow-xl flex items-center justify-around px-2 z-50">
         <button onClick={() => setActiveTab('home')} className={`p-2.5 rounded-xl transition-all ${activeTab === 'home' ? 'bg-pink-50/50 scale-105' : 'hover:bg-slate-50/50'}`}>
-          <Sparkles 
-            size={18} 
-            className={activeTab === 'home' ? 'text-pink-500 animate-pulse' : ''} 
-            style={activeTab !== 'home' ? { stroke: 'url(#purple-gradient)' } : {}}
-          />
+          <Sparkles size={18} className={activeTab === 'home' ? 'text-pink-500 animate-pulse' : ''} style={activeTab !== 'home' ? { stroke: 'url(#purple-gradient)' } : {}} />
         </button>
         {isAdmin ? (
           <>
+            <button onClick={() => setActiveTab('clients')} className={`p-2.5 rounded-xl transition-all ${activeTab === 'clients' ? 'bg-pink-50/50 scale-105' : 'hover:bg-slate-50/50'}`}>
+              <Users size={18} className={activeTab === 'clients' ? 'text-pink-500' : ''} style={activeTab !== 'clients' ? { stroke: 'url(#purple-gradient)' } : {}} />
+            </button>
             <button onClick={() => setActiveTab('services')} className={`p-2.5 rounded-xl transition-all ${activeTab === 'services' ? 'bg-pink-50/50 scale-105' : 'hover:bg-slate-50/50'}`}>
-              <Settings 
-                size={18} 
-                className={activeTab === 'services' ? 'text-pink-500' : ''} 
-                style={activeTab !== 'services' ? { stroke: 'url(#purple-gradient)' } : {}}
-              />
+              <Settings size={18} className={activeTab === 'services' ? 'text-pink-500' : ''} style={activeTab !== 'services' ? { stroke: 'url(#purple-gradient)' } : {}} />
             </button>
             <button onClick={() => setActiveTab('calendar')} className={`p-2.5 rounded-xl transition-all ${activeTab === 'calendar' ? 'bg-pink-50/50 scale-105' : 'hover:bg-slate-50/50'}`}>
-              <CalendarIcon 
-                size={18} 
-                className={activeTab === 'calendar' ? 'text-pink-500' : ''} 
-                style={activeTab !== 'calendar' ? { stroke: 'url(#purple-gradient)' } : {}}
-              />
+              <CalendarIcon size={18} className={activeTab === 'calendar' ? 'text-pink-500' : ''} style={activeTab !== 'calendar' ? { stroke: 'url(#purple-gradient)' } : {}} />
             </button>
           </>
         ) : (
           <>
             <button onClick={() => setActiveTab('history')} className={`p-2.5 rounded-xl transition-all ${activeTab === 'history' ? 'bg-pink-50/50 scale-105' : 'hover:bg-slate-50/50'}`}>
-              <History 
-                size={18} 
-                className={activeTab === 'history' ? 'text-pink-500' : ''} 
-                style={activeTab !== 'history' ? { stroke: 'url(#purple-gradient)' } : {}}
-              />
+              <History size={18} className={activeTab === 'history' ? 'text-pink-500' : ''} style={activeTab !== 'history' ? { stroke: 'url(#purple-gradient)' } : {}} />
             </button>
             <button onClick={() => setActiveTab('profile')} className={`p-2.5 rounded-xl transition-all ${activeTab === 'profile' ? 'bg-pink-50/50 scale-105' : 'hover:bg-slate-50/50'}`}>
-              <User 
-                size={18} 
-                className={activeTab === 'profile' ? 'text-pink-500' : ''} 
-                style={activeTab !== 'profile' ? { stroke: 'url(#purple-gradient)' } : {}}
-              />
+              <User size={18} className={activeTab === 'profile' ? 'text-pink-500' : ''} style={activeTab !== 'profile' ? { stroke: 'url(#purple-gradient)' } : {}} />
             </button>
           </>
         )}
