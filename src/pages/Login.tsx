@@ -27,12 +27,16 @@ const Login = () => {
       {/* Container Principal */}
       <div className="w-full flex flex-col items-center justify-start relative z-10 pt-6 pb-8">
         
-        {/* Logo e Título Cursivo */}
+        {/* Logo e Título */}
         <div className="flex flex-col items-center mb-4 animate-in fade-in slide-in-from-top-4 duration-1000">
           <div className="inline-flex items-center justify-center w-10 h-10 bg-white/10 backdrop-blur-md rounded-full mb-2 border border-white/20">
             <Sparkles className="text-white/80" size={20} />
           </div>
-          <h1 className="text-white text-4xl font-['Dancing_Script'] drop-shadow-md">Lais Nails</h1>
+          <img 
+            src="/logo.png" 
+            alt="Lais Nails Logo" 
+            className="w-48 h-auto object-contain drop-shadow-md brightness-0 invert"
+          />
           <p className="text-white/70 text-[10px] font-light tracking-[0.3em] uppercase mt-1">Sua beleza, nossa arte</p>
         </div>
 
