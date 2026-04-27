@@ -439,6 +439,19 @@ const Index = () => {
     exit: { opacity: 0, y: -10 }
   };
 
+  // Estilo comum para o calendário (sem preto)
+  const calendarClassNames = {
+    day_selected: "!bg-pink-500 !text-white hover:!bg-pink-600 focus:!bg-pink-500 rounded-2xl shadow-lg shadow-pink-200/50 scale-110 transition-all",
+    day_today: "bg-pink-50 text-pink-600 rounded-2xl font-black border border-pink-100",
+    day: "h-10 w-10 p-0 font-bold text-[11px] rounded-2xl hover:bg-pink-50 transition-all text-slate-500",
+    head_cell: "text-pink-300 font-black text-[10px] uppercase tracking-widest w-10 pb-4",
+    nav_button: "h-8 w-8 bg-pink-50/50 p-0 opacity-70 hover:opacity-100 text-pink-500 rounded-xl",
+    table: "w-full border-collapse space-y-1",
+    head_row: "flex",
+    row: "flex w-full mt-2",
+    day_disabled: "text-slate-200 opacity-30 cursor-not-allowed",
+  };
+
   if (!session) return null;
 
   return (
@@ -681,26 +694,20 @@ const Index = () => {
                 {activeTab === "calendar" && (
                   <motion.div key="admin-calendar" variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-4">
                     <h3 className="text-[13px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Gerenciar Agenda</h3>
-                    <Card className="p-4 border-none shadow-sm rounded-[2rem] bg-white/80 overflow-hidden">
+                    <Card className="p-6 border-none shadow-xl rounded-[2.5rem] bg-white/90 backdrop-blur-md overflow-hidden border border-pink-50">
                       <Calendar
                         mode="single"
                         selected={selectedDate}
                         onSelect={setSelectedDate}
                         locale={ptBR}
                         className="rounded-2xl border-none mx-auto"
-                        classNames={{
-                          day_selected: "!bg-pink-500 !text-white hover:!bg-pink-600 focus:!bg-pink-500 rounded-xl shadow-md",
-                          day_today: "bg-slate-100 text-slate-900 rounded-xl",
-                          day: "h-9 w-9 p-0 font-bold text-[10px] rounded-xl hover:bg-pink-50 transition-colors text-slate-900",
-                          head_cell: "text-slate-400 font-black text-[9px] uppercase tracking-widest w-9",
-                          nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 text-pink-500",
-                        }}
+                        classNames={calendarClassNames}
                       />
                     </Card>
                     {selectedDate && (
                       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
                         <div className="flex justify-between items-center px-1">
-                          <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
+                          <h4 className="text-[11px] font-black text-pink-400 uppercase tracking-widest">
                             Horários para {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
                           </h4>
                           <Button onClick={saveDailySlots} disabled={savingSlots} size="sm" className="bg-purple-600 hover:bg-purple-700 rounded-xl gap-1.5 font-black text-[9px] h-7 tracking-wider shadow-md">
@@ -920,9 +927,9 @@ const Index = () => {
             <div className="space-y-3">
               <div className="flex items-center gap-2 ml-1">
                 <CalendarDays size={14} className="text-pink-500" />
-                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">1. Escolha o dia</Label>
+                <Label className="text-[10px] font-black text-pink-300 uppercase tracking-[0.2em]">1. Escolha o dia</Label>
               </div>
-              <Card className="p-3 border-none shadow-sm rounded-[2rem] bg-slate-50/50">
+              <Card className="p-4 border-none shadow-xl rounded-[2.5rem] bg-white/90 backdrop-blur-md border border-pink-50">
                 <Calendar
                   mode="single"
                   selected={bookingDate}
@@ -930,14 +937,7 @@ const Index = () => {
                   locale={ptBR}
                   disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
                   className="rounded-2xl border-none mx-auto"
-                  classNames={{
-                    day_selected: "!bg-pink-500 !text-white hover:!bg-pink-600 focus:!bg-pink-500 rounded-xl shadow-lg shadow-pink-200/50 scale-105 transition-all",
-                    day_today: "bg-white text-pink-500 border-2 border-pink-100 rounded-xl font-black",
-                    day: "h-9 w-9 p-0 font-bold text-[11px] rounded-xl hover:bg-pink-50 transition-all text-slate-900 relative",
-                    head_cell: "text-slate-400 font-black text-[9px] uppercase tracking-widest w-9",
-                    nav_button: "h-8 w-8 bg-transparent p-0 opacity-50 hover:opacity-100 text-pink-500",
-                    day_disabled: "text-slate-200 opacity-50 cursor-not-allowed",
-                  }}
+                  classNames={calendarClassNames}
                 />
               </Card>
             </div>
@@ -946,7 +946,7 @@ const Index = () => {
             <div className="space-y-3">
               <div className="flex items-center gap-2 ml-1">
                 <Clock size={14} className="text-pink-500" />
-                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">2. Escolha o horário</Label>
+                <Label className="text-[10px] font-black text-pink-300 uppercase tracking-[0.2em]">2. Escolha o horário</Label>
               </div>
               <div className="grid grid-cols-4 gap-2.5">
                 {allBookingSlots.length > 0 ? (
