@@ -1057,7 +1057,7 @@ const Index = () => {
         </DialogContent>
       </Dialog>
 
-      <footer className="pt-12 pb-24 flex flex-col items-center gap-1.5 text-black">
+      <footer className="pt-12 pb-24 flex flex-col items-center gap-1.5 text-slate-800">
         <p className="text-[7px] font-black tracking-[0.2em] uppercase">Desenvolvido por Matheus Souza</p>
         <div className="flex items-center gap-4">
           <p className="text-[7px] font-bold">© 2026 MATHEUS SOUZA</p>
