@@ -1,12 +1,10 @@
 "use client";
 
-import { Auth } from '@supabase/auth-ui-react';
-import { ThemeSupa } from '@supabase/auth-ui-shared';
-import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useSession } from '@/components/SessionContextProvider';
 import { Instagram, Sparkles } from 'lucide-react';
+import { AuthForm } from '@/components/AuthForm';
 
 const Login = () => {
   const { session } = useSession();
@@ -40,64 +38,9 @@ const Login = () => {
           <p className="text-white/70 text-[10px] font-light tracking-[0.3em] uppercase mt-1">Sua beleza, nossa arte</p>
         </div>
 
-        {/* Caixa de Login - Menor e mais Clean */}
-        <div className="w-full max-w-[280px] bg-white/90 backdrop-blur-xl rounded-[2.5rem] shadow-2xl p-6 border border-white/40 animate-in fade-in zoom-in duration-700">
-          <div className="auth-container">
-            <Auth
-              supabaseClient={supabase}
-              providers={[]}
-              appearance={{
-                theme: ThemeSupa,
-                variables: {
-                  default: {
-                    colors: {
-                      brand: '#db2777',
-                      brandAccent: '#be185d',
-                      inputBackground: 'transparent',
-                      inputText: '#1f2937',
-                      inputPlaceholder: '#9ca3af',
-                      inputBorder: '#f3f4f6',
-                      inputBorderFocus: '#ec4899',
-                      inputBorderHover: '#f472b6',
-                    },
-                    radii: {
-                      buttonRadius: '12px',
-                      inputRadius: '10px',
-                    },
-                    fonts: {
-                      bodyFontFamily: `'Inter', sans-serif`,
-                      buttonFontFamily: `'Inter', sans-serif`,
-                    }
-                  }
-                },
-                className: {
-                  button: 'font-bold text-[11px] py-2.5 transition-all hover:opacity-90 active:scale-95 shadow-md mt-1',
-                  input: 'border-b border-t-0 border-x-0 rounded-none bg-transparent focus:ring-0 px-1 py-2 text-sm',
-                  label: 'text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-0 mb-0',
-                  container: 'gap-3',
-                }
-              }}
-              localization={{
-                variables: {
-                  sign_in: {
-                    email_label: 'Email',
-                    password_label: 'Senha',
-                    email_input_placeholder: 'Seu email...',
-                    password_input_placeholder: 'Sua senha...',
-                    button_label: 'Entrar',
-                    link_text: 'Criar conta',
-                  },
-                  sign_up: {
-                    email_label: 'Email',
-                    password_label: 'Senha',
-                    button_label: 'Cadastrar',
-                    link_text: 'Já tenho conta',
-                  }
-                }
-              }}
-              theme="light"
-            />
-          </div>
+        {/* Caixa de Login - Customizada */}
+        <div className="w-full max-w-[300px] bg-white/90 backdrop-blur-xl rounded-[2.5rem] shadow-2xl p-7 border border-white/40 animate-in fade-in zoom-in duration-700">
+          <AuthForm />
         </div>
 
         {/* Footer Credits */}
