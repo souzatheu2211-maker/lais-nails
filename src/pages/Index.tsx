@@ -94,7 +94,7 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-24">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Header */}
       <header className="bg-white px-5 pt-6 pb-4 rounded-b-[2.5rem] shadow-sm border-b border-pink-50 relative overflow-hidden">
         <div className="absolute top-[-10%] right-[-10%] w-24 h-24 bg-pink-50 rounded-full blur-3xl opacity-50" />
@@ -136,7 +136,7 @@ const Index = () => {
       </header>
 
       {/* Main Content */}
-      <main className="px-5 mt-4">
+      <main className="px-5 mt-4 flex-1">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           
           {/* CLIENT TABS */}
@@ -145,7 +145,7 @@ const Index = () => {
               <TabsContent value="home" className="space-y-4 animate-in fade-in duration-500">
                 <div className="flex justify-between items-center">
                   <h3 className="text-base font-bold text-gray-800 flex items-center gap-1.5">
-                    Nossos Serviços <Sparkles size={14} className="text-pink-400" />
+                    Nossos Serviços <Sparkles size={14} className="text-pink-400 animate-spin duration-[5s]" />
                   </h3>
                 </div>
                 <div className="grid grid-cols-1 gap-3">
@@ -155,11 +155,11 @@ const Index = () => {
                       <div className="flex-1">
                         <h4 className="font-bold text-gray-800 text-sm">{service.name}</h4>
                         <div className="flex items-center gap-2 text-[9px] text-gray-400 mt-0.5 font-bold uppercase tracking-wider">
-                          <span className="flex items-center gap-1"><Clock size={10} /> {service.duration_minutes} min</span>
+                          <span className="flex items-center gap-1"><Clock size={10} className="animate-pulse" /> {service.duration_minutes} min</span>
                           <span className="text-pink-500">R$ {service.price}</span>
                         </div>
                       </div>
-                      <Button size="sm" className="bg-pink-500 hover:bg-pink-600 rounded-xl px-4 h-8 font-bold text-[10px] shadow-sm">Agendar</Button>
+                      <Button size="sm" className="bg-pink-500 hover:bg-pink-600 rounded-xl px-4 h-8 font-bold text-[10px] shadow-sm active:scale-90 transition-transform">Agendar</Button>
                     </Card>
                   ))}
                 </div>
@@ -273,24 +273,24 @@ const Index = () => {
             </>
           )}
         </Tabs>
-
-        {/* Footer Credits - Cor ajustada para preto/cinza escuro */}
-        <footer className="pt-10 pb-4 flex flex-col items-center gap-1.5 text-slate-900">
-          <p className="text-[8px] font-black tracking-[0.2em] uppercase">Desenvolvido por Matheus Souza</p>
-          <div className="flex items-center gap-4">
-            <p className="text-[8px] font-bold opacity-70">© 2026 MATHEUS SOUZA</p>
-            <a href="https://instagram.com/theu_souz2" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-pink-600 transition-colors group">
-              <Instagram size={12} className="group-hover:scale-110 transition-transform" />
-              <span className="text-[9px] font-black">@theu_souz2</span>
-            </a>
-          </div>
-        </footer>
       </main>
+
+      {/* Footer Credits - Posicionado no final absoluto do conteúdo */}
+      <footer className="pt-12 pb-24 flex flex-col items-center gap-1.5 text-black">
+        <p className="text-[8px] font-black tracking-[0.2em] uppercase">Desenvolvido por Matheus Souza</p>
+        <div className="flex items-center gap-4">
+          <p className="text-[8px] font-bold opacity-80">© 2026 MATHEUS SOUZA</p>
+          <a href="https://instagram.com/theu_souz2" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-pink-600 transition-colors group">
+            <Instagram size={12} className="group-hover:scale-110 transition-transform" />
+            <span className="text-[9px] font-black">@theu_souz2</span>
+          </a>
+        </div>
+      </footer>
 
       {/* Bottom Navigation */}
       <nav className="fixed bottom-4 left-4 right-4 bg-white/90 backdrop-blur-xl border border-white/40 h-14 rounded-[1.5rem] shadow-xl flex items-center justify-around px-2 z-50">
         <button onClick={() => setActiveTab('home')} className={`p-2.5 rounded-xl transition-all ${activeTab === 'home' ? 'text-pink-500 bg-pink-50 scale-105' : 'text-gray-300 hover:text-pink-300'}`}>
-          <Sparkles size={20} />
+          <Sparkles size={20} className={activeTab === 'home' ? 'animate-pulse' : ''} />
         </button>
         
         {isAdmin ? (
