@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useSession } from '@/components/SessionContextProvider';
-import { Sparkles, Instagram } from 'lucide-react';
+import { Instagram } from 'lucide-react';
 
 const Login = () => {
   const { session } = useSession();
@@ -24,15 +24,16 @@ const Login = () => {
       <div className="absolute top-[-10%] left-[-10%] w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse" />
       <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-purple-900/20 rounded-full blur-3xl animate-bounce duration-[10s]" />
 
-      <div className="w-full max-w-sm bg-white/90 backdrop-blur-2xl rounded-[3.5rem] shadow-[0_32px_64px_-15px_rgba(0,0,0,0.2)] p-10 border border-white/50 relative z-10 animate-in fade-in zoom-in duration-700 slide-in-from-bottom-8">
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-tr from-purple-600 to-pink-500 rounded-3xl shadow-lg mb-6 animate-bounce duration-[3s]">
-            <Sparkles className="text-white" size={32} />
+      <div className="w-full max-w-[340px] bg-white/90 backdrop-blur-2xl rounded-[3rem] shadow-[0_32px_64px_-15px_rgba(0,0,0,0.2)] p-8 border border-white/50 relative z-10 animate-in fade-in zoom-in duration-700 slide-in-from-bottom-8">
+        <div className="text-center mb-6">
+          <div className="flex justify-center mb-2">
+            <img 
+              src="/logo.png" 
+              alt="Lais Nails Logo" 
+              className="w-32 h-auto object-contain animate-in fade-in duration-1000"
+            />
           </div>
-          <h1 className="text-3xl font-black tracking-tighter bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-            LAIS NAILS
-          </h1>
-          <p className="text-gray-400 text-sm font-medium mt-1">Sua beleza, nossa arte</p>
+          <p className="text-gray-400 text-[10px] font-bold uppercase tracking-[0.2em]">Sua beleza, nossa arte</p>
         </div>
         
         <div className="auth-container">
@@ -54,8 +55,8 @@ const Login = () => {
                     inputBorderHover: '#f472b6',
                   },
                   radii: {
-                    buttonRadius: '20px',
-                    inputRadius: '16px',
+                    buttonRadius: '18px',
+                    inputRadius: '14px',
                   },
                   fonts: {
                     bodyFontFamily: `ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif`,
@@ -64,9 +65,9 @@ const Login = () => {
                 }
               },
               className: {
-                button: 'font-bold text-base py-3 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md',
-                input: 'bg-gray-50/50 border-gray-100 focus:bg-white transition-all py-6',
-                label: 'text-xs font-bold text-gray-400 uppercase tracking-wider ml-1 mb-2',
+                button: 'font-bold text-sm py-2.5 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md',
+                input: 'bg-gray-50/50 border-gray-100 focus:bg-white transition-all py-5 text-sm',
+                label: 'text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1 mb-1.5',
               }
             }}
             localization={{
