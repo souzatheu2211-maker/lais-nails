@@ -104,6 +104,9 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.56.2
         version: 5.74.4(react@18.3.1)
+      '@types/react-input-mask':
+        specifier: ^3.0.6
+        version: 3.0.6
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -1422,6 +1425,9 @@ packages:
     resolution: {integrity: sha512-MEe3UeoENYVFXzoXEWsvcpg6ZvlrFNlOQ7EOsvhI3CfAXwzPfO8Qwuxd40nepsYKqyyVQnTdEfv68q91yLcKrQ==}
     peerDependencies:
       '@types/react': ^18.0.0
+
+  '@types/react-input-mask@3.0.6':
+    resolution: {integrity: sha512-+5I18WKyG3eWIj7TVPWfK1VitI9mPpS9y6jE/BfmTCe+iL27NfBw/yzKRvCFp1DRBvlvvcsiZf05bub0YC1k8A==}
 
   '@types/react@18.3.28':
     resolution: {integrity: sha512-z9VXpC7MWrhfWipitjNdgCauoMLRdIILQsAEV+ZesIzBq/oUlxk0m3ApZuMFCXdnS4U7KrI+l3WRUEGQ8K1QKw==}
@@ -3671,6 +3677,10 @@ snapshots:
   '@types/prop-types@15.7.15': {}
 
   '@types/react-dom@18.3.7(@types/react@18.3.28)':
+    dependencies:
+      '@types/react': 18.3.28
+
+  '@types/react-input-mask@3.0.6':
     dependencies:
       '@types/react': 18.3.28
 

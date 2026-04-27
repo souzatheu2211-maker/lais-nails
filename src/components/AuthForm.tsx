@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { showError, showSuccess } from '@/utils/toast';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
+import InputMask from 'react-input-mask';
 
 export const AuthForm = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -21,6 +22,8 @@ export const AuthForm = () => {
     fullName: '',
     cpf: '',
     birthDate: '',
+    phone: '',
+    instagram: '',
   });
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -37,6 +40,8 @@ export const AuthForm = () => {
               full_name: formData.fullName,
               cpf: formData.cpf,
               birth_date: formData.birthDate,
+              phone: formData.phone,
+              instagram: formData.instagram,
             },
           },
         });
@@ -77,14 +82,26 @@ export const AuthForm = () => {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-2">CPF</Label>
-                <Input
-                  required
-                  placeholder="000.000.000-00"
-                  className={inputClasses}
+                <InputMask
+                  mask="999.999.999-99"
                   value={formData.cpf}
                   onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
-                />
+                >
+                  {(inputProps: any) => <Input required placeholder="000.000.000-00" className={inputClasses} {...inputProps} />}
+                </InputMask>
               </div>
+              <div className="space-y-1">
+                <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-2">Telefone</Label>
+                <InputMask
+                  mask="(99) 99999-9999"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                >
+                  {(inputProps: any) => <Input required placeholder="(00) 00000-0000" className={inputClasses} {...inputProps} />}
+                </InputMask>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-2">Nascimento</Label>
                 <Input
@@ -93,6 +110,15 @@ export const AuthForm = () => {
                   className={inputClasses}
                   value={formData.birthDate}
                   onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-2">Instagram (@)</Label>
+                <Input
+                  placeholder="@seuinsta"
+                  className={inputClasses}
+                  value={formData.instagram}
+                  onChange={(e) => setFormData({ ...formData, instagram: e.target.value })}
                 />
               </div>
             </div>
@@ -142,15 +168,6 @@ export const AuthForm = () => {
       </form>
 
       <div className="text-center pt-2 flex flex-col items-center gap-2">
-        {!isSignUp && (
-          <button 
-            type="button"
-            className="text-[10px] text-pink-600 font-medium hover:underline"
-            onClick={() => showSuccess("Enviamos um link para seu email!")}
-          >
-            Esqueceu sua senha, gata?
-          </button>
-        )}
         <button
           onClick={() => setIsSignUp(!isSignUp)}
           className="text-[11px] text-gray-500 font-semibold hover:text-pink-600 transition-colors"
