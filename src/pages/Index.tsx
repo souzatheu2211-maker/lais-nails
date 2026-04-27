@@ -38,7 +38,11 @@ const Index = () => {
 
   const fetchProfile = React.useCallback(async () => {
     if (!user?.id) return;
-    const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+    const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+    if (error) {
+      console.error("Erro ao buscar perfil:", error);
+      return;
+    }
     if (data) {
       setProfile(data);
       setEditFormData({
@@ -107,8 +111,14 @@ const Index = () => {
 
       if (error) throw error;
       
+      // Atualiza o estado local imediatamente para feedback instantâneo
+      setProfile((prev: any) => ({
+        ...prev,
+        ...editFormData
+      }));
+
       showSuccess("Perfil atualizado com sucesso!");
-      fetchProfile();
+      await fetchProfile(); // Recarrega os dados do banco para garantir sincronia
       setIsEditModalOpen(false);
     } catch (error: any) {
       showError(error.message);
@@ -120,9 +130,9 @@ const Index = () => {
   const getFirstName = (name: string) => name?.split(' ')[0] || 'Gata';
 
   const tabVariants = {
-    initial: { opacity: 0, x: 10 },
-    animate: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: -10 }
+    initial: { opacity: 0, y: 10 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -10 }
   };
 
   if (!session) {
@@ -209,7 +219,7 @@ const Index = () => {
                     initial="initial"
                     animate="animate"
                     exit="exit"
-                    transition={{ duration: 0.3 }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
                   >
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
@@ -243,24 +253,31 @@ const Index = () => {
                     initial="initial"
                     animate="animate"
                     exit="exit"
-                    transition={{ duration: 0.3 }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
                   >
                     <div className="space-y-4">
                       <h3 className="text-base font-bold text-gray-800">Meu Histórico</h3>
                       <div className="space-y-3">
-                        {appointments.map((app) => (
-                          <Card key={app.id} className="p-3 border-none shadow-sm rounded-2xl">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <h4 className="font-bold text-gray-800 text-sm">{app.services?.name}</h4>
-                                <p className="text-[10px] text-gray-400 font-medium mt-0.5">{app.available_slots?.date} às {app.available_slots?.start_time}</p>
+                        {appointments.length > 0 ? (
+                          appointments.map((app) => (
+                            <Card key={app.id} className="p-3 border-none shadow-sm rounded-2xl">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <h4 className="font-bold text-gray-800 text-sm">{app.services?.name}</h4>
+                                  <p className="text-[10px] text-gray-400 font-medium mt-0.5">{app.available_slots?.date} às {app.available_slots?.start_time}</p>
+                                </div>
+                                <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${app.status === 'completed' ? 'bg-green-50 text-green-500' : 'bg-blue-50 text-blue-500'}`}>
+                                  {app.status}
+                                </span>
                               </div>
-                              <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${app.status === 'completed' ? 'bg-green-50 text-green-500' : 'bg-blue-50 text-blue-500'}`}>
-                                {app.status}
-                              </span>
-                            </div>
-                          </Card>
-                        ))}
+                            </Card>
+                          ))
+                        ) : (
+                          <div className="text-center py-10 text-gray-300">
+                            <History size={40} className="mx-auto mb-2 opacity-20" />
+                            <p className="text-xs font-medium">Nenhum agendamento ainda.</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </motion.div>
@@ -273,14 +290,14 @@ const Index = () => {
                     initial="initial"
                     animate="animate"
                     exit="exit"
-                    transition={{ duration: 0.3 }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
                   >
                     <div className="space-y-4">
                       <h3 className="text-base font-bold text-gray-800">Meu Perfil</h3>
                       <Card className="p-5 border-none shadow-sm rounded-[2rem] space-y-4">
                         <div className="space-y-0.5">
                           <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest ml-0.5">Nome Completo</p>
-                          <p className="font-bold text-gray-800 text-xs">{profile?.full_name}</p>
+                          <p className="font-bold text-gray-800 text-xs">{profile?.full_name || 'Não informado'}</p>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-0.5">
@@ -326,27 +343,34 @@ const Index = () => {
                     initial="initial"
                     animate="animate"
                     exit="exit"
-                    transition={{ duration: 0.3 }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
                   >
                     <div className="space-y-4">
                       <h3 className="text-base font-bold text-gray-800">Próximos Atendimentos</h3>
                       <div className="space-y-3">
-                        {appointments.map((app) => (
-                          <Card key={app.id} className="p-3 border-none shadow-sm rounded-2xl hover:shadow-md transition-shadow">
-                            <div className="flex justify-between items-center">
-                              <div className="flex items-center gap-2.5">
-                                <div className="w-9 h-9 bg-purple-50 rounded-xl flex items-center justify-center text-purple-500 font-black text-xs">
-                                  {app.profiles?.full_name?.charAt(0)}
+                        {appointments.length > 0 ? (
+                          appointments.map((app) => (
+                            <Card key={app.id} className="p-3 border-none shadow-sm rounded-2xl hover:shadow-md transition-shadow">
+                              <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-2.5">
+                                  <div className="w-9 h-9 bg-purple-50 rounded-xl flex items-center justify-center text-purple-500 font-black text-xs">
+                                    {app.profiles?.full_name?.charAt(0)}
+                                  </div>
+                                  <div>
+                                    <h4 className="font-bold text-gray-800 text-xs">{app.profiles?.full_name}</h4>
+                                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">{app.services?.name} • {app.available_slots?.start_time}</p>
+                                  </div>
                                 </div>
-                                <div>
-                                  <h4 className="font-bold text-gray-800 text-xs">{app.profiles?.full_name}</h4>
-                                  <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">{app.services?.name} • {app.available_slots?.start_time}</p>
-                                </div>
+                                <Button variant="ghost" size="icon" className="text-gray-300 hover:text-pink-500 h-8 w-8"><ChevronRight size={18} /></Button>
                               </div>
-                              <Button variant="ghost" size="icon" className="text-gray-300 hover:text-pink-500 h-8 w-8"><ChevronRight size={18} /></Button>
-                            </div>
-                          </Card>
-                        ))}
+                            </Card>
+                          ))
+                        ) : (
+                          <div className="text-center py-10 text-gray-300">
+                            <Calendar size={40} className="mx-auto mb-2 opacity-20" />
+                            <p className="text-xs font-medium">Nenhum atendimento hoje.</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </motion.div>
@@ -359,7 +383,7 @@ const Index = () => {
                     initial="initial"
                     animate="animate"
                     exit="exit"
-                    transition={{ duration: 0.3 }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
                   >
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
@@ -391,7 +415,7 @@ const Index = () => {
                     initial="initial"
                     animate="animate"
                     exit="exit"
-                    transition={{ duration: 0.3 }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
                   >
                     <div className="space-y-4">
                       <h3 className="text-base font-bold text-gray-800">Agenda do Mês</h3>
