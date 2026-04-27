@@ -20,7 +20,7 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-start bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-purple-600 via-pink-500 to-rose-400 p-4 overflow-hidden relative">
-      {/* Elementos decorativos de fundo */}
+      {/* Elementos decorativos de fundo mais suaves */}
       <div className="absolute top-[-5%] left-[-5%] w-64 h-64 bg-white/5 rounded-full blur-3xl animate-pulse" />
       <div className="absolute bottom-[-5%] right-[-5%] w-80 h-80 bg-purple-900/10 rounded-full blur-3xl" />
 
@@ -40,32 +40,12 @@ const Login = () => {
           <p className="text-white/70 text-[10px] font-light tracking-[0.3em] uppercase mt-1">Sua beleza, nossa arte</p>
         </div>
 
-        {/* Caixa de Login */}
-        <div className="w-full max-w-[300px] bg-white/90 backdrop-blur-xl rounded-[2.5rem] shadow-2xl p-6 border border-white/40 animate-in fade-in zoom-in duration-700">
+        {/* Caixa de Login - Menor e mais Clean */}
+        <div className="w-full max-w-[280px] bg-white/90 backdrop-blur-xl rounded-[2.5rem] shadow-2xl p-6 border border-white/40 animate-in fade-in zoom-in duration-700">
           <div className="auth-container">
             <Auth
               supabaseClient={supabase}
               providers={[]}
-              additionalFields={[
-                {
-                  name: 'full_name',
-                  label: 'Nome Completo',
-                  placeholder: 'Seu nome completo',
-                  type: 'text',
-                },
-                {
-                  name: 'cpf',
-                  label: 'CPF',
-                  placeholder: '000.000.000-00',
-                  type: 'text',
-                },
-                {
-                  name: 'birth_date',
-                  label: 'Data de Nascimento',
-                  placeholder: 'DD/MM/AAAA',
-                  type: 'date',
-                }
-              ]}
               appearance={{
                 theme: ThemeSupa,
                 variables: {
@@ -95,7 +75,6 @@ const Login = () => {
                   input: 'border-b border-t-0 border-x-0 rounded-none bg-transparent focus:ring-0 px-1 py-2 text-sm',
                   label: 'text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-0 mb-0',
                   container: 'gap-3',
-                  anchor: 'text-[10px] text-pink-600 hover:text-pink-700 font-medium transition-colors',
                 }
               }}
               localization={{
@@ -107,7 +86,6 @@ const Login = () => {
                     password_input_placeholder: 'Sua senha...',
                     button_label: 'Entrar',
                     link_text: 'Criar conta',
-                    forgotten_password_link_text: '(Esqueceu sua senha, gata?)',
                   },
                   sign_up: {
                     email_label: 'Email',
