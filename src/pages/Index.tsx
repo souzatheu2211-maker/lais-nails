@@ -38,11 +38,17 @@ const Index = () => {
 
   const fetchProfile = React.useCallback(async () => {
     if (!user?.id) return;
-    const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .maybeSingle();
+    
     if (error) {
       console.error("Erro ao buscar perfil:", error);
       return;
     }
+    
     if (data) {
       setProfile(data);
       setEditFormData({
@@ -111,17 +117,19 @@ const Index = () => {
 
       if (error) throw error;
       
-      // Atualiza o estado local imediatamente para feedback instantâneo
+      // Atualiza o estado local imediatamente
       setProfile((prev: any) => ({
         ...prev,
         ...editFormData
       }));
 
       showSuccess("Perfil atualizado com sucesso!");
-      await fetchProfile(); // Recarrega os dados do banco para garantir sincronia
       setIsEditModalOpen(false);
+      // Recarrega do banco para garantir
+      await fetchProfile();
     } catch (error: any) {
-      showError(error.message);
+      console.error("Erro ao atualizar:", error);
+      showError("Erro ao salvar: Verifique se as políticas de segurança (RLS) foram criadas no Supabase.");
     } finally {
       setEditLoading(false);
     }
