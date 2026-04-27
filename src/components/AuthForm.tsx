@@ -55,38 +55,40 @@ export const AuthForm = () => {
     }
   };
 
+  const inputClasses = "bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-12 text-sm focus:bg-white focus:border-pink-200 focus:ring-pink-100 transition-all";
+
   return (
     <div className="space-y-4 w-full">
       <form onSubmit={handleAuth} className="space-y-3">
         {isSignUp && (
           <>
             <div className="space-y-1">
-              <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Nome Completo</Label>
+              <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-2">Nome Completo</Label>
               <Input
                 required
                 placeholder="Seu nome..."
-                className="border-b border-t-0 border-x-0 rounded-none bg-transparent focus:ring-0 px-1 py-2 text-sm"
+                className={inputClasses}
                 value={formData.fullName}
                 onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">CPF</Label>
+                <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-2">CPF</Label>
                 <Input
                   required
                   placeholder="000.000.000-00"
-                  className="border-b border-t-0 border-x-0 rounded-none bg-transparent focus:ring-0 px-1 py-2 text-sm"
+                  className={inputClasses}
                   value={formData.cpf}
                   onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Nascimento</Label>
+                <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-2">Nascimento</Label>
                 <Input
                   required
                   type="date"
-                  className="border-b border-t-0 border-x-0 rounded-none bg-transparent focus:ring-0 px-1 py-2 text-sm"
+                  className={inputClasses}
                   value={formData.birthDate}
                   onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
                 />
@@ -96,24 +98,24 @@ export const AuthForm = () => {
         )}
 
         <div className="space-y-1">
-          <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Email</Label>
+          <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-2">Email</Label>
           <Input
             required
             type="email"
             placeholder="Seu email..."
-            className="border-b border-t-0 border-x-0 rounded-none bg-transparent focus:ring-0 px-1 py-2 text-sm"
+            className={inputClasses}
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
           />
         </div>
 
         <div className="space-y-1">
-          <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Senha</Label>
+          <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-2">Senha</Label>
           <Input
             required
             type="password"
             placeholder="Sua senha..."
-            className="border-b border-t-0 border-x-0 rounded-none bg-transparent focus:ring-0 px-1 py-2 text-sm"
+            className={inputClasses}
             value={formData.password}
             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
           />
@@ -122,7 +124,7 @@ export const AuthForm = () => {
         <Button 
           type="submit" 
           disabled={loading}
-          className="w-full bg-pink-600 hover:bg-pink-700 text-white font-bold text-[11px] py-5 rounded-xl transition-all active:scale-95 shadow-md mt-2"
+          className="w-full bg-pink-600 hover:bg-pink-700 text-white font-bold text-[11px] py-6 rounded-2xl transition-all active:scale-95 shadow-md mt-2"
         >
           {loading ? 'Carregando...' : isSignUp ? 'CADASTRAR' : 'ENTRAR'}
         </Button>
