@@ -24,18 +24,18 @@ const Login = () => {
       <div className="absolute top-[-10%] left-[-10%] w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse" />
       <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-purple-900/20 rounded-full blur-3xl animate-bounce duration-[10s]" />
 
-      {/* Container Principal para centralização vertical */}
-      <div className="w-full flex flex-col items-center -mt-12 relative z-10">
+      {/* Container Principal Centralizado */}
+      <div className="w-full flex flex-col items-center justify-center relative z-10 py-8">
         
         {/* Logo e Ícone */}
-        <div className="flex flex-col items-center mb-6 animate-in fade-in slide-in-from-top-4 duration-1000">
+        <div className="flex flex-col items-center mb-8 animate-in fade-in slide-in-from-top-4 duration-1000">
           <div className="inline-flex items-center justify-center w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl shadow-xl mb-4 animate-bounce duration-[3s] border border-white/30">
             <Sparkles className="text-white" size={28} />
           </div>
           <img 
             src="/logo.png" 
             alt="Lais Nails Logo" 
-            className="w-56 h-auto object-contain drop-shadow-2xl"
+            className="w-52 h-auto object-contain drop-shadow-2xl"
           />
           <p className="text-white/90 text-[9px] font-black uppercase tracking-[0.4em] mt-2">Sua beleza, nossa arte</p>
         </div>
@@ -85,14 +85,14 @@ const Login = () => {
                     password_input_placeholder: '••••••••',
                     button_label: 'ENTRAR AGORA',
                     loading_button_label: 'PROCESSANDO...',
-                    link_text: 'Já tem conta? Entre aqui',
+                    link_text: 'Não tem conta? Cadastre-se',
                   },
                   sign_up: {
                     email_label: 'SEU EMAIL',
                     password_label: 'SUA SENHA',
                     button_label: 'CRIAR CONTA',
                     loading_button_label: 'CRIANDO...',
-                    link_text: 'Não tem conta? Cadastre-se',
+                    link_text: 'Já tem conta? Entre aqui',
                   },
                   forgotten_password: {
                     email_label: 'SEU EMAIL',
@@ -105,26 +105,26 @@ const Login = () => {
             />
           </div>
         </div>
-      </div>
-      
-      {/* Footer */}
-      <div className="absolute bottom-8 flex flex-col items-center gap-1.5 text-white/70">
-        <p className="text-[9px] font-black tracking-[0.2em] uppercase">
-          Desenvolvido por Matheus Souza
-        </p>
-        <div className="flex items-center gap-3">
-          <p className="text-[9px] font-medium opacity-60">
-            © 2026 Lais Nails
+
+        {/* Footer Credits (Agora dentro do fluxo para garantir visibilidade) */}
+        <div className="mt-12 flex flex-col items-center gap-1.5 text-white/80">
+          <p className="text-[9px] font-black tracking-[0.2em] uppercase">
+            Desenvolvido por Matheus Souza
           </p>
-          <a 
-            href="https://instagram.com/theu_souz2" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 hover:text-white transition-colors group"
-          >
-            <Instagram size={12} className="group-hover:scale-110 transition-transform" />
-            <span className="text-[10px] font-bold">@theu_souz2</span>
-          </a>
+          <div className="flex items-center gap-3">
+            <p className="text-[9px] font-medium opacity-60">
+              © 2026 Lais Nails
+            </p>
+            <a 
+              href="https://instagram.com/theu_souz2" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 hover:text-white transition-colors group"
+            >
+              <Instagram size={12} className="group-hover:scale-110 transition-transform" />
+              <span className="text-[10px] font-bold">@theu_souz2</span>
+            </a>
+          </div>
         </div>
       </div>
     </div>
