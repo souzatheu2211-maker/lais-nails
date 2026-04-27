@@ -934,43 +934,38 @@ const Index = () => {
                 <Label className="text-[10px] font-black text-pink-300 uppercase tracking-[0.2em]">2. Escolha o horário</Label>
               </div>
               <div className="grid grid-cols-4 gap-2.5">
-                {allBookingSlots.length > 0 ? (
-                  allBookingSlots.map((slot) => {
-                    const isOccupied = !slot.is_available;
-                    const isSelected = selectedSlot?.id === slot.id;
-                    return (
-                      <motion.button
-                        key={slot.id}
-                        whileTap={{ scale: 0.95 }}
-                        disabled={isOccupied}
-                        onClick={() => setSelectedSlot(slot)}
-                        className={`h-10 rounded-xl text-[10px] font-black transition-all border-2 flex items-center justify-center gap-1 relative overflow-hidden ${
-                          isOccupied 
-                            ? 'bg-slate-200 border-slate-300 text-slate-400 cursor-not-allowed shadow-sm' 
-                            : isSelected 
-                              ? 'bg-pink-500 border-pink-600 text-white shadow-lg shadow-pink-200/50 scale-105' 
-                              : 'bg-emerald-500 border-emerald-600 text-white hover:bg-emerald-600'
-                        }`}
-                      >
-                        {isOccupied ? <Lock size={10} /> : isSelected ? <Check size={10} /> : null}
-                        {slot.start_time.substring(0, 5)}
-                        {isSelected && (
-                          <motion.div 
-                            layoutId="glow"
-                            className="absolute inset-0 bg-white/20 blur-md"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                          />
-                        )}
-                      </motion.button>
-                    );
-                  })
-                ) : (
-                  <div className="col-span-4 py-8 text-center bg-slate-50/50 rounded-[2rem] border-2 border-dashed border-slate-100">
-                    <CalendarIcon size={24} className="mx-auto mb-2 text-slate-200" />
-                    <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">Nenhum horário disponível</p>
-                  </div>
-                )}
+                {timeSlots.map((time) => {
+                  const slotInDb = allBookingSlots.find(s => s.start_time.substring(0, 5) === time);
+                  const isAvailable = slotInDb?.is_available === true;
+                  const isSelected = selectedSlot?.id === slotInDb?.id && slotInDb?.id !== undefined;
+                  
+                  return (
+                    <motion.button
+                      key={time}
+                      whileTap={{ scale: 0.95 }}
+                      disabled={!isAvailable}
+                      onClick={() => isAvailable && setSelectedSlot(slotInDb)}
+                      className={`h-10 rounded-xl text-[10px] font-black transition-all border-2 flex items-center justify-center gap-1 relative overflow-hidden ${
+                        !isAvailable 
+                          ? 'bg-slate-200 border-slate-300 text-slate-400 cursor-not-allowed shadow-sm' 
+                          : isSelected 
+                            ? 'bg-pink-500 border-pink-600 text-white shadow-lg shadow-pink-200/50 scale-105' 
+                            : 'bg-emerald-500 border-emerald-600 text-white hover:bg-emerald-600'
+                      }`}
+                    >
+                      {!isAvailable ? <Lock size={10} /> : isSelected ? <Check size={10} /> : null}
+                      {time}
+                      {isSelected && (
+                        <motion.div 
+                          layoutId="glow"
+                          className="absolute inset-0 bg-white/20 blur-md"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                        />
+                      )}
+                    </motion.button>
+                  );
+                })}
               </div>
             </div>
 
