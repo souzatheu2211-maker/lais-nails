@@ -185,6 +185,16 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
+      {/* Definição do Gradiente SVG */}
+      <svg width="0" height="0" className="absolute">
+        <defs>
+          <linearGradient id="purple-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#9333ea" />
+            <stop offset="100%" stopColor="#6366f1" />
+          </linearGradient>
+        </defs>
+      </svg>
+
       {/* Header */}
       <header className="bg-white px-5 pt-6 pb-4 rounded-b-[2.5rem] shadow-sm border-b border-pink-50 relative overflow-hidden">
         <div className="absolute top-[-10%] right-[-10%] w-24 h-24 bg-pink-50 rounded-full blur-3xl opacity-50" />
@@ -435,18 +445,46 @@ const Index = () => {
 
       {/* Bottom Navigation */}
       <nav className="fixed bottom-4 left-4 right-4 bg-white/80 backdrop-blur-xl border border-white/40 h-14 rounded-[1.5rem] shadow-xl flex items-center justify-around px-2 z-50">
-        <button onClick={() => setActiveTab('home')} className={`p-2.5 rounded-xl transition-all ${activeTab === 'home' ? 'text-pink-500 bg-pink-50/50 scale-105' : 'text-slate-300 hover:text-pink-300'}`}>
-          <Sparkles size={18} className={activeTab === 'home' ? 'animate-pulse' : ''} />
+        <button onClick={() => setActiveTab('home')} className={`p-2.5 rounded-xl transition-all ${activeTab === 'home' ? 'bg-pink-50/50 scale-105' : 'hover:bg-slate-50/50'}`}>
+          <Sparkles 
+            size={18} 
+            className={activeTab === 'home' ? 'text-pink-500 animate-pulse' : ''} 
+            style={activeTab !== 'home' ? { stroke: 'url(#purple-gradient)' } : {}}
+          />
         </button>
         {isAdmin ? (
           <>
-            <button onClick={() => setActiveTab('services')} className={`p-2.5 rounded-xl transition-all ${activeTab === 'services' ? 'text-pink-500 bg-pink-50/50 scale-105' : 'text-slate-300 hover:text-pink-300'}`}><Settings size={18} /></button>
-            <button onClick={() => setActiveTab('calendar')} className={`p-2.5 rounded-xl transition-all ${activeTab === 'calendar' ? 'text-pink-500 bg-pink-50/50 scale-105' : 'text-slate-300 hover:text-pink-300'}`}><Calendar size={18} /></button>
+            <button onClick={() => setActiveTab('services')} className={`p-2.5 rounded-xl transition-all ${activeTab === 'services' ? 'bg-pink-50/50 scale-105' : 'hover:bg-slate-50/50'}`}>
+              <Settings 
+                size={18} 
+                className={activeTab === 'services' ? 'text-pink-500' : ''} 
+                style={activeTab !== 'services' ? { stroke: 'url(#purple-gradient)' } : {}}
+              />
+            </button>
+            <button onClick={() => setActiveTab('calendar')} className={`p-2.5 rounded-xl transition-all ${activeTab === 'calendar' ? 'bg-pink-50/50 scale-105' : 'hover:bg-slate-50/50'}`}>
+              <Calendar 
+                size={18} 
+                className={activeTab === 'calendar' ? 'text-pink-500' : ''} 
+                style={activeTab !== 'calendar' ? { stroke: 'url(#purple-gradient)' } : {}}
+              />
+            </button>
           </>
         ) : (
           <>
-            <button onClick={() => setActiveTab('history')} className={`p-2.5 rounded-xl transition-all ${activeTab === 'history' ? 'text-pink-500 bg-pink-50/50 scale-105' : 'text-slate-300 hover:text-pink-300'}`}><History size={18} /></button>
-            <button onClick={() => setActiveTab('profile')} className={`p-2.5 rounded-xl transition-all ${activeTab === 'profile' ? 'text-pink-500 bg-pink-50/50 scale-105' : 'text-slate-300 hover:text-pink-300'}`}><User size={18} /></button>
+            <button onClick={() => setActiveTab('history')} className={`p-2.5 rounded-xl transition-all ${activeTab === 'history' ? 'bg-pink-50/50 scale-105' : 'hover:bg-slate-50/50'}`}>
+              <History 
+                size={18} 
+                className={activeTab === 'history' ? 'text-pink-500' : ''} 
+                style={activeTab !== 'history' ? { stroke: 'url(#purple-gradient)' } : {}}
+              />
+            </button>
+            <button onClick={() => setActiveTab('profile')} className={`p-2.5 rounded-xl transition-all ${activeTab === 'profile' ? 'bg-pink-50/50 scale-105' : 'hover:bg-slate-50/50'}`}>
+              <User 
+                size={18} 
+                className={activeTab === 'profile' ? 'text-pink-500' : ''} 
+                style={activeTab !== 'profile' ? { stroke: 'url(#purple-gradient)' } : {}}
+              />
+            </button>
           </>
         )}
       </nav>
