@@ -51,12 +51,30 @@ const Login = () => {
                 email_label: 'E-mail',
                 password_label: 'Senha',
                 button_label: 'Entrar',
+                loading_button_label: 'Entrando...',
+                social_provider_text: 'Entrar com {{provider}}',
+                link_text: 'Já tem uma conta? Entre',
               },
               sign_up: {
                 email_label: 'E-mail',
                 password_label: 'Senha',
                 button_label: 'Cadastrar',
-              }
+                loading_button_label: 'Cadastrando...',
+                social_provider_text: 'Cadastrar com {{provider}}',
+                link_text: 'Não tem uma conta? Cadastre-se',
+              },
+              forgotten_password: {
+                email_label: 'E-mail',
+                password_label: 'Senha',
+                button_label: 'Recuperar senha',
+                loading_button_label: 'Enviando instruções...',
+                link_text: 'Esqueceu sua senha?',
+              },
+              update_password: {
+                password_label: 'Nova senha',
+                button_label: 'Atualizar senha',
+                loading_button_label: 'Atualizando...',
+              },
             }
           }}
           theme="light"
