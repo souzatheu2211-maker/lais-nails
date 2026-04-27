@@ -33,6 +33,14 @@ const Index = () => {
   const [availableSlots, setAvailableSlots] = React.useState<string[]>([]);
   const [savingSlots, setSavingSlots] = React.useState(false);
 
+  // Estados de Agendamento (Cliente)
+  const [isBookingModalOpen, setIsBookingModalOpen] = React.useState(false);
+  const [bookingService, setBookingService] = React.useState<any>(null);
+  const [bookingDate, setBookingDate] = React.useState<Date | undefined>(new Date());
+  const [availableBookingSlots, setAvailableBookingSlots] = React.useState<any[]>([]);
+  const [selectedSlotId, setSelectedSlotId] = React.useState<string | null>(null);
+  const [bookingLoading, setBookingLoading] = React.useState(false);
+
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
   const [isServiceModalOpen, setIsServiceModalOpen] = React.useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = React.useState(false);
@@ -107,6 +115,24 @@ const Index = () => {
     setAvailableSlots(data.map(s => s.start_time.substring(0, 5)));
   }, []);
 
+  // Buscar horários disponíveis para agendamento da cliente
+  const fetchBookingSlots = React.useCallback(async (date: Date) => {
+    const formattedDate = format(date, 'yyyy-MM-dd');
+    const { data, error } = await supabase
+      .from('available_slots')
+      .select('*')
+      .eq('date', formattedDate)
+      .eq('is_available', true)
+      .order('start_time');
+    
+    if (error) {
+      showError("Erro ao carregar horários disponíveis");
+      return;
+    }
+    
+    setAvailableBookingSlots(data || []);
+  }, []);
+
   React.useEffect(() => {
     if (session) {
       fetchProfile();
@@ -120,6 +146,12 @@ const Index = () => {
       fetchSlotsForDate(selectedDate);
     }
   }, [isAdmin, selectedDate, fetchSlotsForDate]);
+
+  React.useEffect(() => {
+    if (!isAdmin && bookingDate && isBookingModalOpen) {
+      fetchBookingSlots(bookingDate);
+    }
+  }, [isAdmin, bookingDate, isBookingModalOpen, fetchBookingSlots]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -210,6 +242,50 @@ const Index = () => {
   const openDetailsModal = (service: any) => {
     setSelectedService(service);
     setIsDetailsModalOpen(true);
+  };
+
+  const openBookingModal = (service: any) => {
+    setBookingService(service);
+    setIsBookingModalOpen(true);
+    setIsDetailsModalOpen(false);
+    setSelectedSlotId(null);
+  };
+
+  const handleCreateAppointment = async () => {
+    if (!selectedSlotId || !bookingService || !user?.id) {
+      showError("Selecione um horário para agendar");
+      return;
+    }
+
+    setBookingLoading(true);
+    try {
+      // 1. Criar o agendamento
+      const { error: appError } = await supabase.from('appointments').insert([{
+        user_id: user.id,
+        service_id: bookingService.id,
+        slot_id: selectedSlotId,
+        status: 'pending'
+      }]);
+
+      if (appError) throw appError;
+
+      // 2. Marcar o horário como indisponível
+      const { error: slotError } = await supabase
+        .from('available_slots')
+        .update({ is_available: false })
+        .eq('id', selectedSlotId);
+
+      if (slotError) throw slotError;
+
+      showSuccess("Agendamento realizado com sucesso!");
+      setIsBookingModalOpen(false);
+      fetchAppointments();
+      setActiveTab('history');
+    } catch (error: any) {
+      showError(error.message);
+    } finally {
+      setBookingLoading(false);
+    }
   };
 
   const timeSlots = Array.from({ length: 25 }, (_, i) => {
@@ -336,7 +412,7 @@ const Index = () => {
                             >
                               DETALHES
                             </Button>
-                            <Button size="sm" className="bg-pink-500 hover:bg-pink-600 rounded-xl px-4 h-7 font-black text-[9px] tracking-wider shadow-sm active:scale-95 transition-all">AGENDAR</Button>
+                            <Button onClick={() => openBookingModal(service)} size="sm" className="bg-pink-500 hover:bg-pink-600 rounded-xl px-4 h-7 font-black text-[9px] tracking-wider shadow-sm active:scale-95 transition-all">AGENDAR</Button>
                           </div>
                         </Card>
                       ))}
@@ -352,7 +428,9 @@ const Index = () => {
                           <div className="flex justify-between items-start">
                             <div>
                               <h4 className="font-bold text-slate-700 text-[11px]">{app.services?.name}</h4>
-                              <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">{app.available_slots?.date} • {app.available_slots?.start_time}</p>
+                              <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
+                                {app.available_slots?.date ? format(new Date(app.available_slots.date), "dd/MM/yyyy") : '-'} • {app.available_slots?.start_time?.substring(0, 5)}
+                              </p>
                             </div>
                             <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${app.status === 'completed' ? 'bg-green-50 text-green-500' : 'bg-blue-50 text-blue-500'}`}>
                               {app.status}
@@ -409,7 +487,7 @@ const Index = () => {
                               <div className="w-8 h-8 bg-purple-50 rounded-xl flex items-center justify-center text-purple-400 font-black text-[10px]">{app.profiles?.full_name?.charAt(0)}</div>
                               <div>
                                 <h4 className="font-bold text-slate-700 text-[10px]">{app.profiles?.full_name}</h4>
-                                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">{app.services?.name} • {app.available_slots?.start_time}</p>
+                                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">{app.services?.name} • {app.available_slots?.start_time?.substring(0, 5)}</p>
                               </div>
                             </div>
                             <Button variant="ghost" size="icon" className="text-slate-200 hover:text-pink-400 h-8 w-8"><ChevronRight size={16} /></Button>
@@ -608,12 +686,79 @@ const Index = () => {
                   </p>
                 </div>
 
-                <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white font-black text-[11px] py-6 rounded-2xl shadow-lg shadow-pink-200/50 mt-8 tracking-widest uppercase active:scale-95 transition-all">
+                <Button onClick={() => openBookingModal(selectedService)} className="w-full bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white font-black text-[11px] py-6 rounded-2xl shadow-lg shadow-pink-200/50 mt-8 tracking-widest uppercase active:scale-95 transition-all">
                   AGENDAR AGORA
                 </Button>
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Agendamento (Escolha de Data e Hora) */}
+      <Dialog open={isBookingModalOpen} onOpenChange={setIsBookingModalOpen}>
+        <DialogContent className="sm:max-w-[380px] rounded-[2.5rem] border-none shadow-2xl p-6 bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
+              <CalendarIcon size={16} className="text-pink-500" /> Agendar {bookingService?.name}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6 mt-4">
+            <div className="space-y-2">
+              <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">1. Escolha o dia</Label>
+              <Card className="p-2 border-none shadow-sm rounded-2xl bg-slate-50/50">
+                <Calendar
+                  mode="single"
+                  selected={bookingDate}
+                  onSelect={setBookingDate}
+                  locale={ptBR}
+                  disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
+                  className="rounded-xl border-none mx-auto"
+                  classNames={{
+                    day_selected: "bg-pink-500 text-white hover:bg-pink-600 focus:bg-pink-500 rounded-xl",
+                    day_today: "bg-white text-pink-500 border border-pink-100 rounded-xl",
+                    day: "h-8 w-8 p-0 font-bold text-[9px] rounded-xl hover:bg-pink-50 transition-colors",
+                    head_cell: "text-slate-400 font-black text-[8px] uppercase tracking-widest w-8",
+                    nav_button: "h-6 w-6 bg-transparent p-0 opacity-50 hover:opacity-100 text-pink-500",
+                  }}
+                />
+              </Card>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">2. Escolha o horário</Label>
+              <div className="grid grid-cols-4 gap-2">
+                {availableBookingSlots.length > 0 ? (
+                  availableBookingSlots.map((slot) => (
+                    <button
+                      key={slot.id}
+                      onClick={() => setSelectedSlotId(slot.id)}
+                      className={`h-9 rounded-xl text-[10px] font-black transition-all border-2 ${
+                        selectedSlotId === slot.id 
+                          ? 'bg-pink-500 border-pink-500 text-white shadow-md scale-105' 
+                          : 'bg-white border-slate-100 text-slate-400 hover:border-pink-200'
+                      }`}
+                    >
+                      {slot.start_time.substring(0, 5)}
+                    </button>
+                  ))
+                ) : (
+                  <div className="col-span-4 py-4 text-center">
+                    <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">Nenhum horário disponível para este dia</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <Button 
+              onClick={handleCreateAppointment}
+              disabled={bookingLoading || !selectedSlotId}
+              className="w-full bg-pink-600 hover:bg-pink-700 text-white font-black text-[10px] py-6 rounded-2xl shadow-md tracking-widest uppercase mt-2"
+            >
+              {bookingLoading ? 'PROCESSANDO...' : 'CONFIRMAR AGENDAMENTO'}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
