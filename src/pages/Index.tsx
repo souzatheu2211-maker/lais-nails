@@ -19,10 +19,13 @@ import { format, addMinutes, parse, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import InputMask from 'react-input-mask';
 
+// Importando a imagem de fundo para garantir que o Vite a processe corretamente
+import laisBg from "@/assets/lais-bg.jpeg";
+
 const Index = () => {
   const { session, user } = useSession();
   const navigate = useNavigate();
-  // Definindo 'welcome' como a aba inicial
+  // Definindo 'welcome' como a aba inicial (Galeria/Início)
   const [activeTab, setActiveTab] = React.useState("welcome");
   const [profile, setProfile] = React.useState<any>(null);
   const [services, setServices] = React.useState<any[]>([]);
@@ -52,18 +55,10 @@ const Index = () => {
   const [galleryImages, setGalleryImages] = React.useState<any[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
 
-  // Estados de Cancelamento
-  const [isCancelModalOpen, setIsCancelModalOpen] = React.useState(false);
-  const [appointmentToCancel, setAppointmentToCancel] = React.useState<any>(null);
-  const [cancelReason, setCancelReason] = React.useState("");
-  const [cancelLoading, setCancelLoading] = React.useState(false);
-
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
   const [isServiceModalOpen, setIsServiceModalOpen] = React.useState(false);
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = React.useState(false);
   const [selectedService, setSelectedService] = React.useState<any>(null);
   const [editLoading, setEditLoading] = React.useState(false);
-  const [uploadingImage, setUploadingImage] = React.useState(false);
 
   const [editFormData, setEditFormData] = React.useState({
     full_name: '',
@@ -188,25 +183,6 @@ const Index = () => {
     navigate('/login');
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingImage(true);
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage.from('service-images').upload(fileName, file);
-      if (uploadError) throw uploadError;
-      const { data: { publicUrl } } = supabase.storage.from('service-images').getPublicUrl(fileName);
-      setServiceFormData(prev => ({ ...prev, image_url: publicUrl }));
-      showSuccess("Foto enviada!");
-    } catch (error: any) {
-      showError(error.message);
-    } finally {
-      setUploadingImage(false);
-    }
-  };
-
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.id) return;
@@ -301,21 +277,6 @@ const Index = () => {
     }
   };
 
-  const handleCancelAppointment = async () => {
-    if (!cancelReason.trim()) return;
-    setCancelLoading(true);
-    try {
-      await supabase.from('appointments').update({ status: 'cancelled', cancellation_reason: cancelReason }).eq('id', appointmentToCancel.id);
-      showSuccess("Cancelado.");
-      setIsCancelModalOpen(false);
-      fetchAppointments();
-    } catch (error: any) {
-      showError(error.message);
-    } finally {
-      setCancelLoading(false);
-    }
-  };
-
   const saveDailySlots = async () => {
     if (!selectedDate) return;
     setSavingSlots(true);
@@ -345,6 +306,22 @@ const Index = () => {
     setSelectedSlot(null);
   };
 
+  const openServiceModal = (service: any = null) => {
+    if (service) {
+      setServiceFormData({
+        id: service.id,
+        name: service.name,
+        price: service.price.toString(),
+        duration_minutes: service.duration_minutes.toString(),
+        description: service.description || '',
+        image_url: service.image_url || ''
+      });
+    } else {
+      setServiceFormData({ id: '', name: '', price: '', duration_minutes: '', description: '', image_url: '' });
+    }
+    setIsServiceModalOpen(true);
+  };
+
   const timeSlots = Array.from({ length: 25 }, (_, i) => {
     const hour = Math.floor(i / 2) + 8;
     const minute = i % 2 === 0 ? '00' : '30';
@@ -361,9 +338,13 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-['Inter'] relative overflow-x-hidden">
-      {/* Logo de Fundo Transparente - Atualizada com a nova foto */}
-      <div className="fixed inset-0 pointer-events-none z-0 flex items-center justify-center opacity-[0.04]">
-        <img src="/src/assets/lais-bg.jpeg" alt="Background" className="w-full h-full object-cover" />
+      {/* IMAGEM DE FUNDO GLOBAL - Visível em todo o sistema */}
+      <div className="fixed inset-0 pointer-events-none z-0 flex items-center justify-center opacity-[0.08]">
+        <img 
+          src={laisBg} 
+          alt="Background" 
+          className="w-full h-full object-cover" 
+        />
       </div>
 
       <svg width="0" height="0" className="absolute">
