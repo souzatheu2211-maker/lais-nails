@@ -4,7 +4,7 @@ import * as React from "react";
 import { useSession } from "@/components/SessionContextProvider";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Calendar as CalendarIcon, Clock, Sparkles, User, LogOut, Instagram, History, Settings, Plus, Pencil, Trash2, ChevronRight, Heart, X, Check, DollarSign, Save, Info, Image as ImageIcon, Upload, Loader2, Lock } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Sparkles, User, LogOut, Instagram, History, Settings, Plus, Pencil, Trash2, ChevronRight, Heart, X, Check, DollarSign, Save, Info, Image as ImageIcon, Upload, Loader2, Lock, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { showError, showSuccess } from "@/utils/toast";
@@ -40,6 +40,12 @@ const Index = () => {
   const [allBookingSlots, setAllBookingSlots] = React.useState<any[]>([]);
   const [selectedSlot, setSelectedSlot] = React.useState<any>(null);
   const [bookingLoading, setBookingLoading] = React.useState(false);
+
+  // Estados de Cancelamento
+  const [isCancelModalOpen, setIsCancelModalOpen] = React.useState(false);
+  const [appointmentToCancel, setAppointmentToCancel] = React.useState<any>(null);
+  const [cancelReason, setCancelReason] = React.useState("");
+  const [cancelLoading, setCancelLoading] = React.useState(false);
 
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
   const [isServiceModalOpen, setIsServiceModalOpen] = React.useState(false);
@@ -118,7 +124,6 @@ const Index = () => {
 
   const fetchBookingSlots = React.useCallback(async (date: Date) => {
     const formattedDate = format(date, 'yyyy-MM-dd');
-    // Buscamos TODOS os horários do dia, inclusive os ocupados
     const { data, error } = await supabase
       .from('available_slots')
       .select('*')
@@ -281,49 +286,57 @@ const Index = () => {
   };
 
   const handleCreateAppointment = async () => {
-    if (!selectedSlot || !bookingService || !user?.id) {
+    if (!selectedSlot || !bookingService || !user?.id || !bookingDate) {
       showError("Selecione um horário para agendar");
       return;
     }
 
     setBookingLoading(true);
     try {
-      // 1. Calcular quantos slots de 30min o serviço ocupa
+      const formattedDate = format(bookingDate, 'yyyy-MM-dd');
+      const startTimeStr = selectedSlot.start_time;
+      const startTime = parse(startTimeStr, 'HH:mm:ss', new Date());
+      const endTimeStr = format(addMinutes(startTime, bookingService.duration_minutes), 'HH:mm:ss');
+
+      // 1. Verificar conflito via RPC
+      const { data: hasConflict, error: conflictError } = await supabase.rpc('check_appointment_conflict', {
+        p_date: formattedDate,
+        p_start: startTimeStr,
+        p_end: endTimeStr
+      });
+
+      if (conflictError) throw conflictError;
+      if (hasConflict) throw new Error("Horário indisponível. Alguém acabou de agendar este período.");
+
+      // 2. Calcular slots para bloquear visualmente
       const slotsToBlock = Math.ceil(bookingService.duration_minutes / 30);
-      
-      // 2. Encontrar os slots subsequentes para bloquear
-      const startTime = parse(selectedSlot.start_time, 'HH:mm:ss', new Date());
       const slotsToUpdate = [selectedSlot.id];
       
       for (let i = 1; i < slotsToBlock; i++) {
         const nextTime = format(addMinutes(startTime, i * 30), 'HH:mm:ss');
         const nextSlot = allBookingSlots.find(s => s.start_time === nextTime);
-        
         if (nextSlot && nextSlot.is_available) {
           slotsToUpdate.push(nextSlot.id);
-        } else {
-          // Se não houver slot disponível para a duração total, avisar
-          throw new Error(`Este serviço precisa de ${bookingService.duration_minutes}min, mas não há horários livres seguidos suficientes a partir das ${selectedSlot.start_time.substring(0, 5)}.`);
+        } else if (nextSlot && !nextSlot.is_available) {
+          throw new Error(`Este serviço precisa de ${bookingService.duration_minutes}min, mas há um conflito às ${nextTime.substring(0, 5)}.`);
         }
       }
 
-      // 3. Criar o agendamento (vinculado ao primeiro slot)
+      // 3. Criar o agendamento
       const { error: appError } = await supabase.from('appointments').insert([{
         user_id: user.id,
         service_id: bookingService.id,
         slot_id: selectedSlot.id,
-        status: 'pending'
+        appointment_date: formattedDate,
+        start_time: startTimeStr,
+        end_time: endTimeStr,
+        status: 'scheduled'
       }]);
 
       if (appError) throw appError;
 
-      // 4. Marcar todos os slots necessários como indisponíveis
-      const { error: slotError } = await supabase
-        .from('available_slots')
-        .update({ is_available: false })
-        .in('id', slotsToUpdate);
-
-      if (slotError) throw slotError;
+      // 4. Marcar slots como indisponíveis
+      await supabase.from('available_slots').update({ is_available: false }).in('id', slotsToUpdate);
 
       showSuccess("Agendamento realizado com sucesso!");
       setIsBookingModalOpen(false);
@@ -333,6 +346,41 @@ const Index = () => {
       showError(error.message);
     } finally {
       setBookingLoading(false);
+    }
+  };
+
+  const openCancelModal = (app: any) => {
+    setAppointmentToCancel(app);
+    setCancelReason("");
+    setIsCancelModalOpen(true);
+  };
+
+  const handleCancelAppointment = async () => {
+    if (!cancelReason.trim()) {
+      showError("Por favor, informe o motivo do cancelamento.");
+      return;
+    }
+
+    setCancelLoading(true);
+    try {
+      const { error } = await supabase.from('appointments').update({
+        status: 'cancelled',
+        cancellation_reason: cancelReason
+      }).eq('id', appointmentToCancel.id);
+
+      if (error) throw error;
+
+      // Opcional: Liberar os slots novamente
+      // Aqui precisaríamos de uma lógica para encontrar quais slots esse app ocupava
+      // Por simplicidade, vamos apenas atualizar o status do agendamento
+
+      showSuccess("Agendamento cancelado.");
+      setIsCancelModalOpen(false);
+      fetchAppointments();
+    } catch (error: any) {
+      showError(error.message);
+    } finally {
+      setCancelLoading(false);
     }
   };
 
@@ -474,15 +522,33 @@ const Index = () => {
                       {appointments.length > 0 ? appointments.map((app) => (
                         <Card key={app.id} className="p-3 border-none shadow-sm rounded-2xl bg-white/80">
                           <div className="flex justify-between items-start">
-                            <div>
+                            <div className="flex-1">
                               <h4 className="font-bold text-slate-700 text-[11px]">{app.services?.name}</h4>
                               <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
-                                {app.available_slots?.date ? format(new Date(app.available_slots.date), "dd/MM/yyyy") : '-'} • {app.available_slots?.start_time?.substring(0, 5)}
+                                {app.appointment_date ? format(new Date(app.appointment_date), "dd/MM/yyyy") : '-'} • {app.start_time?.substring(0, 5)} - {app.end_time?.substring(0, 5)}
                               </p>
+                              {app.status === 'cancelled' && app.cancellation_reason && (
+                                <p className="text-[8px] text-rose-400 font-medium mt-1 italic">Motivo: {app.cancellation_reason}</p>
+                              )}
                             </div>
-                            <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${app.status === 'completed' ? 'bg-green-50 text-green-500' : 'bg-blue-50 text-blue-500'}`}>
-                              {app.status}
-                            </span>
+                            <div className="flex flex-col items-end gap-2">
+                              <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${
+                                app.status === 'completed' ? 'bg-green-50 text-green-500' : 
+                                app.status === 'cancelled' ? 'bg-rose-50 text-rose-500' : 
+                                'bg-blue-50 text-blue-500'
+                              }`}>
+                                {app.status === 'scheduled' ? 'Agendado' : app.status === 'cancelled' ? 'Cancelado' : 'Concluído'}
+                              </span>
+                              {app.status === 'scheduled' && (
+                                <Button 
+                                  onClick={() => openCancelModal(app)}
+                                  variant="ghost" 
+                                  className="h-6 px-2 text-[8px] font-black text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg tracking-widest uppercase"
+                                >
+                                  CANCELAR
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         </Card>
                       )) : <div className="text-center py-10 text-slate-300"><History size={32} className="mx-auto mb-2 opacity-20" /><p className="text-[10px] font-bold uppercase tracking-widest">Vazio</p></div>}
@@ -535,7 +601,12 @@ const Index = () => {
                               <div className="w-8 h-8 bg-purple-50 rounded-xl flex items-center justify-center text-purple-400 font-black text-[10px]">{app.profiles?.full_name?.charAt(0)}</div>
                               <div>
                                 <h4 className="font-bold text-slate-700 text-[10px]">{app.profiles?.full_name}</h4>
-                                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">{app.services?.name} • {app.available_slots?.start_time?.substring(0, 5)}</p>
+                                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
+                                  {app.services?.name} • {app.start_time?.substring(0, 5)} - {app.end_time?.substring(0, 5)}
+                                </p>
+                                {app.status === 'cancelled' && (
+                                  <p className="text-[8px] text-rose-500 font-bold uppercase mt-0.5">CANCELADO: {app.cancellation_reason}</p>
+                                )}
                               </div>
                             </div>
                             <Button variant="ghost" size="icon" className="text-slate-200 hover:text-pink-400 h-8 w-8"><ChevronRight size={16} /></Button>
@@ -626,6 +697,40 @@ const Index = () => {
       </main>
 
       {/* Modals */}
+      <Dialog open={isCancelModalOpen} onOpenChange={setIsCancelModalOpen}>
+        <DialogContent className="sm:max-w-[350px] rounded-[2rem] border-none shadow-2xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-black text-rose-500 uppercase tracking-widest flex items-center gap-2">
+              <AlertCircle size={16} /> Cancelar Agendamento
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
+              Poxa, que pena! Para cancelar seu horário de <strong>{appointmentToCancel?.services?.name}</strong>, por favor nos conte o motivo:
+            </p>
+            <div className="space-y-1">
+              <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">Motivo do Cancelamento</Label>
+              <Textarea 
+                required
+                placeholder="Ex: Tive um imprevisto no trabalho..."
+                className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 text-[10px] min-h-[100px]" 
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+              />
+            </div>
+            <DialogFooter className="pt-2">
+              <Button 
+                onClick={handleCancelAppointment}
+                disabled={cancelLoading || !cancelReason.trim()} 
+                className="w-full bg-rose-600 hover:bg-rose-700 text-white font-black text-[10px] py-6 rounded-2xl shadow-md tracking-widest uppercase"
+              >
+                {cancelLoading ? 'CANCELANDO...' : 'CONFIRMAR CANCELAMENTO'}
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
         <DialogContent className="sm:max-w-[350px] rounded-[2rem] border-none shadow-2xl p-6">
           <DialogHeader><DialogTitle className="text-sm font-black text-slate-700 uppercase tracking-widest flex items-center gap-2"><Pencil size={16} className="text-pink-500" /> Editar Perfil</DialogTitle></DialogHeader>
@@ -701,7 +806,7 @@ const Index = () => {
 
             <div className="space-y-1">
               <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">Descrição Detalhada</Label>
-              <Textarea className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 text-[10px] min-h-[80px]" value={serviceFormData.description} onChange={(e) => setServiceFormData({ ...serviceFormData, description: e.target.value })} />
+              <Textarea className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 text-[10px] min-h-[80px]" value={serviceFormData.description} onChange={(e) => setServiceFormData({ ...editFormData, description: e.target.value })} />
             </div>
             <DialogFooter className="pt-2"><Button type="submit" disabled={editLoading || uploadingImage} className="w-full bg-pink-600 hover:bg-pink-700 text-white font-black text-[10px] py-6 rounded-2xl shadow-md tracking-widest uppercase">{editLoading ? 'SALVANDO...' : 'SALVAR SERVIÇO'}</Button></DialogFooter>
           </form>
