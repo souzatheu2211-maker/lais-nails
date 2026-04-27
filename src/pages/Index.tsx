@@ -38,6 +38,7 @@ const Index = () => {
   const [bookingService, setBookingService] = React.useState<any>(null);
   const [bookingDate, setBookingDate] = React.useState<Date | undefined>(new Date());
   const [allBookingSlots, setAllBookingSlots] = React.useState<any[]>([]);
+  const [dayAppointments, setDayAppointments] = React.useState<any[]>([]); // Todos os agendamentos do dia selecionado
   const [selectedSlot, setSelectedSlot] = React.useState<any>(null);
   const [bookingLoading, setBookingLoading] = React.useState(false);
 
@@ -123,18 +124,33 @@ const Index = () => {
 
   const fetchBookingSlots = React.useCallback(async (date: Date) => {
     const formattedDate = format(date, 'yyyy-MM-dd');
-    const { data, error } = await supabase
+    
+    // Busca slots liberados
+    const { data: slots, error: slotsError } = await supabase
       .from('available_slots')
       .select('*')
       .eq('date', formattedDate)
       .order('start_time');
     
-    if (error) {
+    if (slotsError) {
       showError("Erro ao carregar horários");
       return;
     }
     
-    setAllBookingSlots(data || []);
+    // Busca TODOS os agendamentos do dia para verificar ocupação real
+    const { data: apps, error: appsError } = await supabase
+      .from('appointments')
+      .select('start_time, end_time')
+      .eq('appointment_date', formattedDate)
+      .eq('status', 'scheduled');
+
+    if (appsError) {
+      showError("Erro ao verificar agendamentos");
+      return;
+    }
+    
+    setAllBookingSlots(slots || []);
+    setDayAppointments(apps || []);
   }, []);
 
   React.useEffect(() => {
@@ -936,7 +952,15 @@ const Index = () => {
               <div className="grid grid-cols-4 gap-2.5">
                 {timeSlots.map((time) => {
                   const slotInDb = allBookingSlots.find(s => s.start_time.substring(0, 5) === time);
-                  const isAvailable = slotInDb?.is_available === true;
+                  
+                  // Verifica se o horário está dentro de algum agendamento existente
+                  const isBooked = dayAppointments.some(app => {
+                    const start = app.start_time.substring(0, 5);
+                    const end = app.end_time.substring(0, 5);
+                    return time >= start && time < end;
+                  });
+
+                  const isAvailable = slotInDb?.is_available === true && !isBooked;
                   const isSelected = selectedSlot?.id === slotInDb?.id && slotInDb?.id !== undefined;
                   
                   return (
