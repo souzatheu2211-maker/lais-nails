@@ -43,13 +43,13 @@ const Login = () => {
           <AuthForm />
         </div>
 
-        {/* Footer Credits - Cor ajustada para preto/cinza escuro para visibilidade */}
-        <div className="mt-6 flex flex-col items-center gap-1 text-slate-900">
+        {/* Footer Credits */}
+        <div className="mt-6 flex flex-col items-center gap-1 text-black">
           <p className="text-[7px] font-black tracking-[0.2em] uppercase">
             DESENVOLVIDO POR MATHEUS SOUZA
           </p>
           <div className="flex items-center gap-2">
-            <p className="text-[7px] font-bold opacity-70">
+            <p className="text-[7px] font-bold">
               © 2026 MATHEUS SOUZA
             </p>
             <a 

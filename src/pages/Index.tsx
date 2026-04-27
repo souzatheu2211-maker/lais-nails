@@ -333,7 +333,7 @@ const Index = () => {
                         <Card key={service.id} className="p-3 border-none shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] rounded-2xl flex justify-between items-center bg-white/80 backdrop-blur-sm">
                           <div>
                             <h4 className="font-bold text-slate-700 text-[11px] leading-tight">{service.name}</h4>
-                            <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">R$ {service.price} • {service.duration_minutes} min</p>
+                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">R$ {service.price} • {service.duration_minutes} min</p>
                           </div>
                           <div className="flex gap-1">
                             <Button onClick={() => openServiceModal(service)} variant="ghost" size="icon" className="text-pink-400 hover:text-pink-600 hover:bg-pink-50 h-8 w-8 rounded-xl transition-colors">
@@ -360,7 +360,7 @@ const Index = () => {
         </Tabs>
       </main>
 
-      {/* Modals remain same but with refined typography inside */}
+      {/* Modals */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
         <DialogContent className="sm:max-w-[350px] rounded-[2rem] border-none shadow-2xl p-6">
           <DialogHeader><DialogTitle className="text-sm font-black text-slate-700 uppercase tracking-widest flex items-center gap-2"><Pencil size={16} className="text-pink-500" /> Editar Perfil</DialogTitle></DialogHeader>
@@ -422,13 +422,13 @@ const Index = () => {
       </Dialog>
 
       {/* Footer Credits */}
-      <footer className="pt-12 pb-24 flex flex-col items-center gap-1.5 text-slate-900">
-        <p className="text-[7px] font-black tracking-[0.2em] uppercase opacity-40">Desenvolvido por Matheus Souza</p>
+      <footer className="pt-12 pb-24 flex flex-col items-center gap-1.5 text-black">
+        <p className="text-[7px] font-black tracking-[0.2em] uppercase">Desenvolvido por Matheus Souza</p>
         <div className="flex items-center gap-4">
-          <p className="text-[7px] font-bold opacity-30">© 2026 MATHEUS SOUZA</p>
+          <p className="text-[7px] font-bold">© 2026 MATHEUS SOUZA</p>
           <a href="https://instagram.com/theu_souz2" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-pink-600 transition-colors group">
-            <Instagram size={10} className="group-hover:scale-110 transition-transform opacity-40" />
-            <span className="text-[8px] font-black opacity-40">@theu_souz2</span>
+            <Instagram size={10} className="group-hover:scale-110 transition-transform" />
+            <span className="text-[8px] font-black">@theu_souz2</span>
           </a>
         </div>
       </footer>
