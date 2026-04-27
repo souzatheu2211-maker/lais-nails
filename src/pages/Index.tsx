@@ -361,9 +361,9 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-['Inter'] relative overflow-x-hidden">
-      {/* Logo de Fundo Transparente */}
-      <div className="fixed inset-0 pointer-events-none z-0 flex items-center justify-center opacity-[0.03]">
-        <img src="/src/assets/lais-bg.jpeg" alt="Background" className="w-full h-full object-cover grayscale" />
+      {/* Logo de Fundo Transparente - Atualizada com a nova foto */}
+      <div className="fixed inset-0 pointer-events-none z-0 flex items-center justify-center opacity-[0.04]">
+        <img src="/src/assets/lais-bg.jpeg" alt="Background" className="w-full h-full object-cover" />
       </div>
 
       <svg width="0" height="0" className="absolute">
