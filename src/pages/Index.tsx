@@ -103,7 +103,7 @@ const Index = () => {
           </p>
           <div className="flex items-center gap-4">
             <p className="text-[10px] font-medium opacity-60">
-              © 2026 Todos os direitos reservados
+              © 2026 MATHEUS SOUZA
             </p>
             <a 
               href="https://instagram.com/theu_souz2" 

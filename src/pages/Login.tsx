@@ -113,7 +113,7 @@ const Login = () => {
           </p>
           <div className="flex items-center gap-3">
             <p className="text-[9px] font-medium opacity-60">
-              © 2026 Lais Nails
+              © 2026 MATHEUS SOUZA
             </p>
             <a 
               href="https://instagram.com/theu_souz2" 
