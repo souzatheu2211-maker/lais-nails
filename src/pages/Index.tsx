@@ -1,11 +1,11 @@
 "use client";
 
+import * as React from "react";
 import { useSession } from "@/components/SessionContextProvider";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Calendar, Clock, Sparkles, User, LogOut, Instagram, History, Settings, Plus, Edit2, Trash2, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { showError, showSuccess } from "@/utils/toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,34 +13,28 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 const Index = () => {
   const { session, user } = useSession();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("home");
-  const [profile, setProfile] = useState<any>(null);
-  const [services, setServices] = useState<any[]>([]);
-  const [appointments, setAppointments] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = React.useState("home");
+  const [profile, setProfile] = React.useState<any>(null);
+  const [services, setServices] = React.useState<any[]>([]);
+  const [appointments, setAppointments] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
 
   const isAdmin = user?.email === 'lais@nails.com';
 
-  useEffect(() => {
-    if (session) {
-      fetchProfile();
-      fetchServices();
-      fetchAppointments();
-    }
-  }, [session]);
-
-  const fetchProfile = async () => {
-    const { data } = await supabase.from('profiles').select('*').eq('id', user?.id).single();
+  const fetchProfile = React.useCallback(async () => {
+    if (!user?.id) return;
+    const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
     setProfile(data);
-  };
+  }, [user?.id]);
 
-  const fetchServices = async () => {
+  const fetchServices = React.useCallback(async () => {
     const { data } = await supabase.from('services').select('*').eq('active', true);
     setServices(data || []);
     setLoading(false);
-  };
+  }, []);
 
-  const fetchAppointments = async () => {
+  const fetchAppointments = React.useCallback(async () => {
+    if (!user?.id) return;
     let query = supabase.from('appointments').select(`
       *,
       profiles:user_id (full_name, phone, instagram),
@@ -49,12 +43,20 @@ const Index = () => {
     `);
 
     if (!isAdmin) {
-      query = query.eq('user_id', user?.id);
+      query = query.eq('user_id', user.id);
     }
 
     const { data } = await query.order('created_at', { ascending: false });
     setAppointments(data || []);
-  };
+  }, [user?.id, isAdmin]);
+
+  React.useEffect(() => {
+    if (session) {
+      fetchProfile();
+      fetchServices();
+      fetchAppointments();
+    }
+  }, [session, fetchProfile, fetchServices, fetchAppointments]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
