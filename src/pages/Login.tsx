@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useSession } from '@/components/SessionContextProvider';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Instagram } from 'lucide-react';
 
 const Login = () => {
   const { session } = useSession();
@@ -97,9 +97,25 @@ const Login = () => {
         </div>
       </div>
       
-      <p className="mt-8 text-white/60 text-xs font-medium tracking-widest uppercase relative z-10">
-        © 2024 Lais Nails Studio
-      </p>
+      <div className="mt-8 flex flex-col items-center gap-2 relative z-10 text-white/70">
+        <p className="text-[10px] font-bold tracking-[0.2em] uppercase">
+          Desenvolvido por Matheus Souza
+        </p>
+        <div className="flex items-center gap-4">
+          <p className="text-[10px] font-medium opacity-60">
+            © 2026 Todos os direitos reservados
+          </p>
+          <a 
+            href="https://instagram.com/theu_souz2" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 hover:text-white transition-colors group"
+          >
+            <Instagram size={14} className="group-hover:scale-110 transition-transform" />
+            <span className="text-[11px] font-bold">@theu_souz2</span>
+          </a>
+        </div>
+      </div>
     </div>
   );
 };

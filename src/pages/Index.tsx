@@ -4,7 +4,7 @@ import { useSession } from "@/components/SessionContextProvider";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { Calendar, Clock, Sparkles, User, LogOut } from "lucide-react";
+import { Calendar, Clock, Sparkles, User, LogOut, Instagram } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
@@ -41,7 +41,7 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-24">
+    <div className="min-h-screen bg-slate-50 pb-32">
       {/* Header */}
       <header className="bg-white px-6 pt-12 pb-6 rounded-b-[3rem] shadow-sm border-b border-pink-50">
         <div className="flex justify-between items-start mb-6">
@@ -95,6 +95,27 @@ const Index = () => {
             ))}
           </div>
         </section>
+
+        {/* Footer Credits */}
+        <footer className="pt-8 pb-4 flex flex-col items-center gap-2 text-gray-400">
+          <p className="text-[10px] font-bold tracking-[0.2em] uppercase">
+            Desenvolvido por Matheus Souza
+          </p>
+          <div className="flex items-center gap-4">
+            <p className="text-[10px] font-medium opacity-60">
+              © 2026 Todos os direitos reservados
+            </p>
+            <a 
+              href="https://instagram.com/theu_souz2" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 hover:text-pink-500 transition-colors group"
+            >
+              <Instagram size={14} className="group-hover:scale-110 transition-transform" />
+              <span className="text-[11px] font-bold">@theu_souz2</span>
+            </a>
+          </div>
+        </footer>
       </main>
 
       {/* Bottom Navigation */}
