@@ -19,16 +19,16 @@ const Login = () => {
   }, [session, navigate]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-purple-600 via-pink-500 to-rose-400 p-4 overflow-hidden relative">
+    <div className="min-h-screen flex flex-col items-center justify-start bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-purple-600 via-pink-500 to-rose-400 p-4 overflow-hidden relative">
       {/* Elementos decorativos animados de fundo */}
       <div className="absolute top-[-10%] left-[-10%] w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse" />
       <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-purple-900/20 rounded-full blur-3xl animate-bounce duration-[10s]" />
 
-      {/* Container Principal Centralizado */}
-      <div className="w-full flex flex-col items-center justify-center relative z-10 py-8">
+      {/* Container Principal - Alinhado ao topo para subir a caixa */}
+      <div className="w-full flex flex-col items-center justify-start relative z-10 pt-12 pb-8">
         
         {/* Logo e Ícone */}
-        <div className="flex flex-col items-center mb-8 animate-in fade-in slide-in-from-top-4 duration-1000">
+        <div className="flex flex-col items-center mb-6 animate-in fade-in slide-in-from-top-4 duration-1000">
           <div className="inline-flex items-center justify-center w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl shadow-xl mb-4 animate-bounce duration-[3s] border border-white/30">
             <Sparkles className="text-white" size={28} />
           </div>
@@ -106,10 +106,10 @@ const Login = () => {
           </div>
         </div>
 
-        {/* Footer Credits (Agora dentro do fluxo para garantir visibilidade) */}
-        <div className="mt-12 flex flex-col items-center gap-1.5 text-white/80">
+        {/* Footer Credits */}
+        <div className="mt-10 flex flex-col items-center gap-1.5 text-white/80">
           <p className="text-[9px] font-black tracking-[0.2em] uppercase">
-            Desenvolvido por Matheus Souza
+            DESENVOLVIDO POR MATHEUS SOUZA
           </p>
           <div className="flex items-center gap-3">
             <p className="text-[9px] font-medium opacity-60">
