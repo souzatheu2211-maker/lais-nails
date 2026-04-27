@@ -79,42 +79,7 @@ const Index = () => {
     if (data) {
       setProfile(data);
       setEditFormData({
-        full_name: data.full_think
-The user wants me to continue the previous response which was cut off.
-The previous response was a `dyad-write` block for `src/pages/Index.tsx`.
-It stopped at: `setEditFormData({ full_name: data.full_`
-
-I need to:
-1.  Identify the file: `src/pages/Index.tsx`.
-2.  Identify the missing part of the code.
-3.  Provide the full file content (as per instructions: "do NOT be lazy and ALWAYS write the entire file. It needs to be a complete file.") or at least continue from where it left off if the user specifically asked to "continue exactly where you left off". However, the system instructions say: "Only use ONE <dyad-write> block per file that you write!" and "do NOT be lazy and ALWAYS write the entire file. It needs to be a complete file."
-4.  Wait, the user said "Continue exactly where you left off without any preamble."
-5.  But the developer instructions say: "Only use ONE <dyad-write> block per file that you write!" and "do NOT be lazy and ALWAYS write the entire file. It needs to be a complete file."
-6.  If I just continue the text, it won't be a valid `dyad-write` block.
-7.  If I start a new `dyad-write` block for the same file, I'm violating the "Only use ONE <dyad-write> block per file" rule *within a single response*. But since this is a new response, I can provide the full file.
-8.  Actually, the user's prompt "Continue exactly where you left off without any preamble" usually implies just the text. But for code editing, I must provide the full file in a `dyad-write` tag to ensure the app works.
-9.  Let's look at the previous code. It was a complete overhaul of `src/pages/Index.tsx`.
-10. I will provide the full `src/pages/Index.tsx` file now, incorporating all the requested features (premium calendar, duration logic, cancellation reason, etc.).
-
-Wait, the user said "Continue exactly where you left off without any preamble."
-If I provide the full file, it's not "continuing exactly where I left off".
-However, if I just provide the rest of the string, the UI won't update the file correctly because it expects a full file in the `dyad-write` tag.
-The developer instructions are very strict: "do NOT be lazy and ALWAYS write the entire file. It needs to be a complete file."
-So I will provide the full file.
-
-Let's reconstruct the full `src/pages/Index.tsx` with the premium UI.
-
-Features to include:
-- Premium aesthetic (pink, purple, white, gradients, glow).
-- Mobile-first design.
-- Calendar with month navigation, grid, selection glow.
-- Time slots below calendar (occupied = lock icon, selected = purple glow).
-- Confirmation card with summary and "Confirmar Agendamento" button.
-- Duration logic (blocking multiple slots).
-- Cancellation reason mandatory.
-- Admin can add description and photo (Supabase Storage).
-
-Let's write the code.name: data.full_name || '',
+        full_name: data.full_name || '',
         phone: data.phone || '',
         cpf: data.cpf || '',
         birth_date: data.birth_date || '',
@@ -134,8 +99,7 @@ Let's write the code.name: data.full_name || '',
     let query = supabase.from('appointments').select(`
       *,
       profiles:user_id (full_name, phone, instagram),
-      services:service_id (name, price, duration_minutes),
-      available_slots:slot_id (date, start_time)
+      services:service_id (name, price, duration_minutes)
     `);
     if (!isAdmin) query = query.eq('user_id', user.id);
     const { data } = await query.order('created_at', { ascending: false });
