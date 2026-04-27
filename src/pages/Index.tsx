@@ -4,7 +4,7 @@ import * as React from "react";
 import { useSession } from "@/components/SessionContextProvider";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Calendar, Clock, Sparkles, User, LogOut, Instagram, History, Settings, Plus, Pencil, Trash2, ChevronRight, Heart, X, Check, DollarSign } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Sparkles, User, LogOut, Instagram, History, Settings, Plus, Pencil, Trash2, ChevronRight, Heart, X, Check, DollarSign, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { showError, showSuccess } from "@/utils/toast";
@@ -14,6 +14,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { motion, AnimatePresence } from "framer-motion";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import InputMask from 'react-input-mask';
 
 const Index = () => {
@@ -25,6 +28,11 @@ const Index = () => {
   const [appointments, setAppointments] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   
+  // Estados da Agenda (Admin)
+  const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(new Date());
+  const [availableSlots, setAvailableSlots] = React.useState<string[]>([]);
+  const [savingSlots, setSavingSlots] = React.useState(false);
+
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
   const [isServiceModalOpen, setIsServiceModalOpen] = React.useState(false);
   const [editLoading, setEditLoading] = React.useState(false);
@@ -81,6 +89,22 @@ const Index = () => {
     setAppointments(data || []);
   }, [user?.id, isAdmin]);
 
+  // Buscar horários disponíveis para a data selecionada
+  const fetchSlotsForDate = React.useCallback(async (date: Date) => {
+    const formattedDate = format(date, 'yyyy-MM-dd');
+    const { data, error } = await supabase
+      .from('available_slots')
+      .select('start_time')
+      .eq('date', formattedDate);
+    
+    if (error) {
+      showError("Erro ao carregar horários");
+      return;
+    }
+    
+    setAvailableSlots(data.map(s => s.start_time.substring(0, 5)));
+  }, []);
+
   React.useEffect(() => {
     if (session) {
       fetchProfile();
@@ -88,6 +112,12 @@ const Index = () => {
       fetchAppointments();
     }
   }, [session, fetchProfile, fetchServices, fetchAppointments]);
+
+  React.useEffect(() => {
+    if (isAdmin && selectedDate) {
+      fetchSlotsForDate(selectedDate);
+    }
+  }, [isAdmin, selectedDate, fetchSlotsForDate]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -171,6 +201,47 @@ const Index = () => {
       setServiceFormData({ id: '', name: '', price: '', duration_minutes: '', description: '' });
     }
     setIsServiceModalOpen(true);
+  };
+
+  // Gerenciamento de Horários
+  const timeSlots = Array.from({ length: 25 }, (_, i) => {
+    const hour = Math.floor(i / 2) + 8;
+    const minute = i % 2 === 0 ? '00' : '30';
+    return `${hour.toString().padStart(2, '0')}:${minute}`;
+  });
+
+  const toggleSlot = (time: string) => {
+    setAvailableSlots(prev => 
+      prev.includes(time) ? prev.filter(t => t !== time) : [...prev, time]
+    );
+  };
+
+  const saveDailySlots = async () => {
+    if (!selectedDate) return;
+    setSavingSlots(true);
+    const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+
+    try {
+      // 1. Remover todos os horários existentes para este dia
+      await supabase.from('available_slots').delete().eq('date', formattedDate);
+
+      // 2. Inserir os novos horários selecionados
+      if (availableSlots.length > 0) {
+        const newSlots = availableSlots.map(time => ({
+          date: formattedDate,
+          start_time: `${time}:00`,
+          is_available: true
+        }));
+        const { error } = await supabase.from('available_slots').insert(newSlots);
+        if (error) throw error;
+      }
+
+      showSuccess("Agenda do dia salva!");
+    } catch (error: any) {
+      showError(error.message);
+    } finally {
+      setSavingSlots(false);
+    }
   };
 
   const getFirstName = (name: string) => name?.split(' ')[0] || 'Gata';
@@ -328,7 +399,7 @@ const Index = () => {
                             <Button variant="ghost" size="icon" className="text-slate-200 hover:text-pink-400 h-8 w-8"><ChevronRight size={16} /></Button>
                           </div>
                         </Card>
-                      )) : <div className="text-center py-10 text-slate-300"><Calendar size={32} className="mx-auto mb-2 opacity-20" /><p className="text-[10px] font-bold uppercase tracking-widest">Sem agenda</p></div>}
+                      )) : <div className="text-center py-10 text-slate-300"><CalendarIcon size={32} className="mx-auto mb-2 opacity-20" /><p className="text-[10px] font-bold uppercase tracking-widest">Sem agenda</p></div>}
                     </div>
                   </motion.div>
                 )}
@@ -343,7 +414,7 @@ const Index = () => {
                         <Card key={service.id} className="p-3 border-none shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] rounded-2xl flex justify-between items-center bg-white/80 backdrop-blur-sm">
                           <div>
                             <h4 className="font-bold text-slate-700 text-[11px] leading-tight">{service.name}</h4>
-                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">R$ {service.price} • {service.duration_minutes} min</p>
+                            <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">R$ {service.price} • {service.duration_minutes} min</p>
                           </div>
                           <div className="flex gap-1">
                             <Button onClick={() => openServiceModal(service)} variant="ghost" size="icon" className="text-pink-400 hover:text-pink-600 hover:bg-pink-50 h-8 w-8 rounded-xl transition-colors">
@@ -360,8 +431,61 @@ const Index = () => {
                 )}
                 {activeTab === "calendar" && (
                   <motion.div key="admin-calendar" variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-4">
-                    <h3 className="text-[13px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Agenda do Mês</h3>
-                    <Card className="p-10 border-none shadow-sm rounded-[2rem] text-center text-slate-200 bg-white/80"><Calendar className="mx-auto mb-3 opacity-10" size={40} /><p className="text-[10px] font-bold uppercase tracking-widest">Em breve</p></Card>
+                    <h3 className="text-[13px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Gerenciar Agenda</h3>
+                    
+                    <Card className="p-4 border-none shadow-sm rounded-[2rem] bg-white/80 overflow-hidden">
+                      <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={setSelectedDate}
+                        locale={ptBR}
+                        className="rounded-2xl border-none mx-auto"
+                        classNames={{
+                          day_selected: "bg-pink-500 text-white hover:bg-pink-600 focus:bg-pink-500 rounded-xl",
+                          day_today: "bg-slate-100 text-slate-900 rounded-xl",
+                          day: "h-9 w-9 p-0 font-bold text-[10px] rounded-xl hover:bg-pink-50 transition-colors",
+                          head_cell: "text-slate-400 font-black text-[9px] uppercase tracking-widest w-9",
+                          nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 text-pink-500",
+                        }}
+                      />
+                    </Card>
+
+                    {selectedDate && (
+                      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+                        <div className="flex justify-between items-center px-1">
+                          <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
+                            Horários para {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
+                          </h4>
+                          <Button 
+                            onClick={saveDailySlots} 
+                            disabled={savingSlots}
+                            size="sm" 
+                            className="bg-purple-600 hover:bg-purple-700 rounded-xl gap-1.5 font-black text-[9px] h-7 tracking-wider shadow-md"
+                          >
+                            <Save size={12} /> {savingSlots ? 'SALVANDO...' : 'SALVAR'}
+                          </Button>
+                        </div>
+
+                        <div className="grid grid-cols-4 gap-2">
+                          {timeSlots.map((time) => {
+                            const isSelected = availableSlots.includes(time);
+                            return (
+                              <button
+                                key={time}
+                                onClick={() => toggleSlot(time)}
+                                className={`h-9 rounded-xl text-[10px] font-black transition-all border-2 ${
+                                  isSelected 
+                                    ? 'bg-pink-500 border-pink-500 text-white shadow-md scale-105' 
+                                    : 'bg-white border-slate-100 text-slate-400 hover:border-pink-200'
+                                }`}
+                              >
+                                {time}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </motion.div>
+                    )}
                   </motion.div>
                 )}
               </>
@@ -462,7 +586,7 @@ const Index = () => {
               />
             </button>
             <button onClick={() => setActiveTab('calendar')} className={`p-2.5 rounded-xl transition-all ${activeTab === 'calendar' ? 'bg-pink-50/50 scale-105' : 'hover:bg-slate-50/50'}`}>
-              <Calendar 
+              <CalendarIcon 
                 size={18} 
                 className={activeTab === 'calendar' ? 'text-pink-500' : ''} 
                 style={activeTab !== 'calendar' ? { stroke: 'url(#purple-gradient)' } : {}}
