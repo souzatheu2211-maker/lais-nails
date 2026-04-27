@@ -338,8 +338,8 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-['Inter'] relative overflow-x-hidden">
-      {/* IMAGEM DE FUNDO GLOBAL - Visível em todo o sistema */}
-      <div className="fixed inset-0 pointer-events-none z-0 flex items-center justify-center opacity-[0.08]">
+      {/* IMAGEM DE FUNDO GLOBAL - Visibilidade aumentada para 25% */}
+      <div className="fixed inset-0 pointer-events-none z-0 flex items-center justify-center opacity-[0.25]">
         <img 
           src={laisBg} 
           alt="Background" 
