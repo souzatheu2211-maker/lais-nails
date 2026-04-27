@@ -4,7 +4,7 @@ import * as React from "react";
 import { useSession } from "@/components/SessionContextProvider";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Calendar as CalendarIcon, Clock, Sparkles, User, LogOut, Instagram, History, Settings, Plus, Pencil, Trash2, ChevronRight, Heart, X, Check, DollarSign, Save } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Sparkles, User, LogOut, Instagram, History, Settings, Plus, Pencil, Trash2, ChevronRight, Heart, X, Check, DollarSign, Save, Info, Image as ImageIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { showError, showSuccess } from "@/utils/toast";
@@ -35,6 +35,8 @@ const Index = () => {
 
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
   const [isServiceModalOpen, setIsServiceModalOpen] = React.useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = React.useState(false);
+  const [selectedService, setSelectedService] = React.useState<any>(null);
   const [editLoading, setEditLoading] = React.useState(false);
 
   const [editFormData, setEditFormData] = React.useState({
@@ -50,7 +52,8 @@ const Index = () => {
     name: '',
     price: '',
     duration_minutes: '',
-    description: ''
+    description: '',
+    image_url: ''
   });
 
   const isAdmin = user?.email === 'lais@nails.com';
@@ -89,7 +92,6 @@ const Index = () => {
     setAppointments(data || []);
   }, [user?.id, isAdmin]);
 
-  // Buscar horários disponíveis para a data selecionada
   const fetchSlotsForDate = React.useCallback(async (date: Date) => {
     const formattedDate = format(date, 'yyyy-MM-dd');
     const { data, error } = await supabase
@@ -156,7 +158,8 @@ const Index = () => {
         name: serviceFormData.name,
         price: parseFloat(serviceFormData.price),
         duration_minutes: parseInt(serviceFormData.duration_minutes),
-        description: serviceFormData.description
+        description: serviceFormData.description,
+        image_url: serviceFormData.image_url
       };
       if (serviceFormData.id) {
         const { error } = await supabase.from('services').update(payload).eq('id', serviceFormData.id);
@@ -195,15 +198,20 @@ const Index = () => {
         name: service.name,
         price: service.price.toString(),
         duration_minutes: service.duration_minutes.toString(),
-        description: service.description || ''
+        description: service.description || '',
+        image_url: service.image_url || ''
       });
     } else {
-      setServiceFormData({ id: '', name: '', price: '', duration_minutes: '', description: '' });
+      setServiceFormData({ id: '', name: '', price: '', duration_minutes: '', description: '', image_url: '' });
     }
     setIsServiceModalOpen(true);
   };
 
-  // Gerenciamento de Horários
+  const openDetailsModal = (service: any) => {
+    setSelectedService(service);
+    setIsDetailsModalOpen(true);
+  };
+
   const timeSlots = Array.from({ length: 25 }, (_, i) => {
     const hour = Math.floor(i / 2) + 8;
     const minute = i % 2 === 0 ? '00' : '30';
@@ -222,10 +230,7 @@ const Index = () => {
     const formattedDate = format(selectedDate, 'yyyy-MM-dd');
 
     try {
-      // 1. Remover todos os horários existentes para este dia
       await supabase.from('available_slots').delete().eq('date', formattedDate);
-
-      // 2. Inserir os novos horários selecionados
       if (availableSlots.length > 0) {
         const newSlots = availableSlots.map(time => ({
           date: formattedDate,
@@ -235,7 +240,6 @@ const Index = () => {
         const { error } = await supabase.from('available_slots').insert(newSlots);
         if (error) throw error;
       }
-
       showSuccess("Agenda do dia salva!");
     } catch (error: any) {
       showError(error.message);
@@ -256,7 +260,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      {/* Definição do Gradiente SVG */}
       <svg width="0" height="0" className="absolute">
         <defs>
           <linearGradient id="purple-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -266,7 +269,6 @@ const Index = () => {
         </defs>
       </svg>
 
-      {/* Header */}
       <header className="bg-white px-5 pt-6 pb-4 rounded-b-[2.5rem] shadow-sm border-b border-pink-50 relative overflow-hidden">
         <div className="absolute top-[-10%] right-[-10%] w-24 h-24 bg-pink-50 rounded-full blur-3xl opacity-50" />
         <div className="flex flex-col items-center relative z-10">
@@ -299,7 +301,6 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="px-5 mt-4 flex-1">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <AnimatePresence mode="wait">
@@ -310,10 +311,16 @@ const Index = () => {
                     <h3 className="text-[13px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2 ml-1">
                       Nossos Serviços <Sparkles size={12} className="text-pink-300" />
                     </h3>
-                    <div className="grid grid-cols-1 gap-2.5">
+                    <div className="grid grid-cols-1 gap-3">
                       {services.map((service) => (
                         <Card key={service.id} className="p-3 border-none shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] rounded-2xl flex items-center gap-3 hover:shadow-md transition-all group bg-white/80 backdrop-blur-sm">
-                          <div className="w-10 h-10 bg-pink-50/50 rounded-xl flex items-center justify-center text-lg group-hover:scale-110 transition-transform">💅</div>
+                          <div className="w-12 h-12 bg-pink-50/50 rounded-xl flex items-center justify-center overflow-hidden group-hover:scale-105 transition-transform">
+                            {service.image_url ? (
+                              <img src={service.image_url} alt={service.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-xl">💅</span>
+                            )}
+                          </div>
                           <div className="flex-1">
                             <h4 className="font-bold text-slate-700 text-[11px] leading-tight">{service.name}</h4>
                             <div className="flex items-center gap-2 text-[8px] text-slate-400 mt-0.5 font-bold uppercase tracking-wider">
@@ -321,7 +328,16 @@ const Index = () => {
                               <span className="text-pink-400/80">R$ {service.price}</span>
                             </div>
                           </div>
-                          <Button size="sm" className="bg-pink-500 hover:bg-pink-600 rounded-xl px-4 h-7 font-black text-[9px] tracking-wider shadow-sm active:scale-95 transition-all">AGENDAR</Button>
+                          <div className="flex flex-col gap-1.5">
+                            <Button 
+                              onClick={() => openDetailsModal(service)}
+                              variant="ghost" 
+                              className="h-6 px-2 text-[8px] font-black text-slate-400 hover:text-pink-500 hover:bg-pink-50 rounded-lg tracking-widest uppercase"
+                            >
+                              DETALHES
+                            </Button>
+                            <Button size="sm" className="bg-pink-500 hover:bg-pink-600 rounded-xl px-4 h-7 font-black text-[9px] tracking-wider shadow-sm active:scale-95 transition-all">AGENDAR</Button>
+                          </div>
                         </Card>
                       ))}
                     </div>
@@ -412,9 +428,14 @@ const Index = () => {
                     <div className="grid grid-cols-1 gap-2.5">
                       {services.map((service) => (
                         <Card key={service.id} className="p-3 border-none shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] rounded-2xl flex justify-between items-center bg-white/80 backdrop-blur-sm">
-                          <div>
-                            <h4 className="font-bold text-slate-700 text-[11px] leading-tight">{service.name}</h4>
-                            <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">R$ {service.price} • {service.duration_minutes} min</p>
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-slate-100 rounded-xl overflow-hidden">
+                              {service.image_url ? <img src={service.image_url} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-300"><ImageIcon size={16} /></div>}
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-slate-700 text-[11px] leading-tight">{service.name}</h4>
+                              <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">R$ {service.price} • {service.duration_minutes} min</p>
+                            </div>
                           </div>
                           <div className="flex gap-1">
                             <Button onClick={() => openServiceModal(service)} variant="ghost" size="icon" className="text-pink-400 hover:text-pink-600 hover:bg-pink-50 h-8 w-8 rounded-xl transition-colors">
@@ -432,7 +453,6 @@ const Index = () => {
                 {activeTab === "calendar" && (
                   <motion.div key="admin-calendar" variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-4">
                     <h3 className="text-[13px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Gerenciar Agenda</h3>
-                    
                     <Card className="p-4 border-none shadow-sm rounded-[2rem] bg-white/80 overflow-hidden">
                       <Calendar
                         mode="single"
@@ -449,36 +469,21 @@ const Index = () => {
                         }}
                       />
                     </Card>
-
                     {selectedDate && (
                       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
                         <div className="flex justify-between items-center px-1">
                           <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
                             Horários para {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
                           </h4>
-                          <Button 
-                            onClick={saveDailySlots} 
-                            disabled={savingSlots}
-                            size="sm" 
-                            className="bg-purple-600 hover:bg-purple-700 rounded-xl gap-1.5 font-black text-[9px] h-7 tracking-wider shadow-md"
-                          >
+                          <Button onClick={saveDailySlots} disabled={savingSlots} size="sm" className="bg-purple-600 hover:bg-purple-700 rounded-xl gap-1.5 font-black text-[9px] h-7 tracking-wider shadow-md">
                             <Save size={12} /> {savingSlots ? 'SALVANDO...' : 'SALVAR'}
                           </Button>
                         </div>
-
                         <div className="grid grid-cols-4 gap-2">
                           {timeSlots.map((time) => {
                             const isSelected = availableSlots.includes(time);
                             return (
-                              <button
-                                key={time}
-                                onClick={() => toggleSlot(time)}
-                                className={`h-9 rounded-xl text-[10px] font-black transition-all border-2 ${
-                                  isSelected 
-                                    ? 'bg-pink-500 border-pink-500 text-white shadow-md scale-105' 
-                                    : 'bg-white border-slate-100 text-slate-400 hover:border-pink-200'
-                                }`}
-                              >
+                              <button key={time} onClick={() => toggleSlot(time)} className={`h-9 rounded-xl text-[10px] font-black transition-all border-2 ${isSelected ? 'bg-pink-500 border-pink-500 text-white shadow-md scale-105' : 'bg-white border-slate-100 text-slate-400 hover:border-pink-200'}`}>
                                 {time}
                               </button>
                             );
@@ -547,7 +552,11 @@ const Index = () => {
               </div>
             </div>
             <div className="space-y-1">
-              <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">Descrição (Opcional)</Label>
+              <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">URL da Foto do Resultado</Label>
+              <Input placeholder="https://..." className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[10px]" value={serviceFormData.image_url} onChange={(e) => setServiceFormData({ ...serviceFormData, image_url: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">Descrição Detalhada</Label>
               <Textarea className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 text-[10px] min-h-[80px]" value={serviceFormData.description} onChange={(e) => setServiceFormData({ ...serviceFormData, description: e.target.value })} />
             </div>
             <DialogFooter className="pt-2"><Button type="submit" disabled={editLoading} className="w-full bg-pink-600 hover:bg-pink-700 text-white font-black text-[10px] py-6 rounded-2xl shadow-md tracking-widest uppercase">{editLoading ? 'SALVANDO...' : 'SALVAR SERVIÇO'}</Button></DialogFooter>
@@ -555,7 +564,59 @@ const Index = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Footer Credits */}
+      {/* Modal de Detalhes do Serviço (Cliente) */}
+      <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
+        <DialogContent className="sm:max-w-[380px] rounded-[2.5rem] border-none shadow-2xl p-0 overflow-hidden bg-white">
+          {selectedService && (
+            <div className="flex flex-col">
+              <div className="relative h-56 w-full bg-slate-100">
+                {selectedService.image_url ? (
+                  <img src={selectedService.image_url} alt={selectedService.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center text-slate-300 gap-2">
+                    <ImageIcon size={40} strokeWidth={1} />
+                    <p className="text-[10px] font-bold uppercase tracking-widest">Sem foto disponível</p>
+                  </div>
+                )}
+                <div className="absolute top-4 right-4">
+                  <Button onClick={() => setIsDetailsModalOpen(false)} variant="ghost" size="icon" className="bg-white/20 backdrop-blur-md hover:bg-white/40 text-white rounded-full h-8 w-8">
+                    <X size={18} />
+                  </Button>
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white to-transparent" />
+              </div>
+              
+              <div className="px-6 pb-8 -mt-6 relative z-10">
+                <div className="flex justify-between items-end mb-4">
+                  <div>
+                    <h3 className="text-lg font-black text-slate-800 leading-tight">{selectedService.name}</h3>
+                    <div className="flex items-center gap-3 mt-1">
+                      <span className="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        <Clock size={12} className="text-pink-300" /> {selectedService.duration_minutes} min
+                      </span>
+                      <span className="text-[10px] font-black text-pink-500 bg-pink-50 px-2 py-0.5 rounded-full">
+                        R$ {selectedService.price}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <h4 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Sobre o procedimento</h4>
+                  <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
+                    {selectedService.description || "Nenhuma descrição detalhada disponível para este serviço no momento."}
+                  </p>
+                </div>
+
+                <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white font-black text-[11px] py-6 rounded-2xl shadow-lg shadow-pink-200/50 mt-8 tracking-widest uppercase active:scale-95 transition-all">
+                  AGENDAR AGORA
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <footer className="pt-12 pb-24 flex flex-col items-center gap-1.5 text-black">
         <p className="text-[7px] font-black tracking-[0.2em] uppercase">Desenvolvido por Matheus Souza</p>
         <div className="flex items-center gap-4">
@@ -567,7 +628,6 @@ const Index = () => {
         </div>
       </footer>
 
-      {/* Bottom Navigation */}
       <nav className="fixed bottom-4 left-4 right-4 bg-white/80 backdrop-blur-xl border border-white/40 h-14 rounded-[1.5rem] shadow-xl flex items-center justify-around px-2 z-50">
         <button onClick={() => setActiveTab('home')} className={`p-2.5 rounded-xl transition-all ${activeTab === 'home' ? 'bg-pink-50/50 scale-105' : 'hover:bg-slate-50/50'}`}>
           <Sparkles 
