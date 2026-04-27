@@ -72,7 +72,11 @@ const Index = () => {
           <div className="w-24 h-24 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-4">
             <Sparkles size={48} className="text-white" />
           </div>
-          <h1 className="text-5xl font-black tracking-tighter">LAIS NAILS</h1>
+          <img 
+            src="/logo.png" 
+            alt="Lais Nails Logo" 
+            className="w-64 h-auto object-contain mx-auto drop-shadow-xl brightness-0 invert"
+          />
           <p className="text-lg font-medium opacity-90">
             Agende seu horário e transforme seu visual com elegância e sofisticação.
           </p>
@@ -93,12 +97,22 @@ const Index = () => {
     <div className="min-h-screen bg-slate-50 pb-32">
       {/* Header */}
       <header className="bg-white px-6 pt-12 pb-6 rounded-b-[3rem] shadow-sm border-b border-pink-50">
-        <div className="flex justify-between items-start mb-6">
-          <div>
-            <p className="text-gray-500 font-medium">Bem-vinda, {getFirstName(profile?.full_name)}!</p>
-            <h2 className="text-2xl font-bold text-gray-900">{isAdmin ? 'Painel Admin' : 'Lais Nails'}</h2>
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex flex-col">
+            <p className="text-gray-500 text-xs font-medium uppercase tracking-wider">Bem-vinda, {getFirstName(profile?.full_name)}!</p>
+            <div className="mt-1">
+              {isAdmin ? (
+                <h2 className="text-xl font-bold text-gray-900">Painel Admin</h2>
+              ) : (
+                <img 
+                  src="/logo.png" 
+                  alt="Lais Nails Logo" 
+                  className="h-8 w-auto object-contain"
+                />
+              )}
+            </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={handleLogout} className="text-gray-400">
+          <Button variant="ghost" size="icon" onClick={handleLogout} className="text-gray-400 hover:text-pink-500 transition-colors">
             <LogOut size={20} />
           </Button>
         </div>
@@ -136,7 +150,12 @@ const Index = () => {
                       <Button size="sm" className="bg-pink-500 hover:bg-pink-600 rounded-xl px-4">Agendar</Button>
                     </Card>
                   ))}
-                  {services.length === 0 && <p className="text-center text-gray-400 py-8">Nenhum serviço disponível.</p>}
+                  {services.length === 0 && (
+                    <div className="text-center py-12 bg-white rounded-3xl border border-dashed border-gray-200">
+                      <Sparkles className="mx-auto text-gray-200 mb-2" size={32} />
+                      <p className="text-gray-400 text-sm">Nenhum serviço disponível no momento.</p>
+                    </div>
+                  )}
                 </div>
               </TabsContent>
 
@@ -156,7 +175,12 @@ const Index = () => {
                       </div>
                     </Card>
                   ))}
-                  {appointments.length === 0 && <p className="text-center text-gray-400 py-8">Você ainda não tem agendamentos.</p>}
+                  {appointments.length === 0 && (
+                    <div className="text-center py-12 bg-white rounded-3xl border border-dashed border-gray-200">
+                      <History className="mx-auto text-gray-200 mb-2" size={32} />
+                      <p className="text-gray-400 text-sm">Você ainda não tem agendamentos.</p>
+                    </div>
+                  )}
                 </div>
               </TabsContent>
 
@@ -164,24 +188,30 @@ const Index = () => {
                 <h3 className="text-lg font-bold text-gray-800">Meu Perfil</h3>
                 <Card className="p-6 border-none shadow-md rounded-3xl space-y-4">
                   <div className="space-y-1">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase">Nome</p>
-                    <p className="font-medium">{profile?.full_name}</p>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Nome</p>
+                    <p className="font-medium text-gray-900">{profile?.full_name}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <p className="text-[10px] font-bold text-gray-400 uppercase">CPF</p>
-                      <p className="font-medium">{profile?.cpf || '-'}</p>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">CPF</p>
+                      <p className="font-medium text-gray-900">{profile?.cpf || '-'}</p>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-[10px] font-bold text-gray-400 uppercase">Telefone</p>
-                      <p className="font-medium">{profile?.phone || '-'}</p>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Telefone</p>
+                      <p className="font-medium text-gray-900">{profile?.phone || '-'}</p>
                     </div>
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase">Instagram</p>
-                    <p className="font-medium text-pink-600">{profile?.instagram || '-'}</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Nascimento</p>
+                      <p className="font-medium text-gray-900">{profile?.birth_date || '-'}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Instagram</p>
+                      <p className="font-medium text-pink-600">{profile?.instagram || '-'}</p>
+                    </div>
                   </div>
-                  <Button variant="outline" className="w-full rounded-2xl border-pink-100 text-pink-600">Editar Dados</Button>
+                  <Button variant="outline" className="w-full rounded-2xl border-pink-100 text-pink-600 hover:bg-pink-50 mt-4">Editar Dados</Button>
                 </Card>
               </TabsContent>
             </>
@@ -209,13 +239,19 @@ const Index = () => {
                       </div>
                     </Card>
                   ))}
+                  {appointments.length === 0 && (
+                    <div className="text-center py-12 bg-white rounded-3xl border border-dashed border-gray-200">
+                      <Calendar className="mx-auto text-gray-200 mb-2" size={32} />
+                      <p className="text-gray-400 text-sm">Nenhum agendamento para hoje.</p>
+                    </div>
+                  )}
                 </div>
               </TabsContent>
 
               <TabsContent value="services" className="space-y-6">
                 <div className="flex justify-between items-center">
                   <h3 className="text-lg font-bold text-gray-800">Meus Serviços</h3>
-                  <Button size="sm" className="bg-pink-500 rounded-xl gap-2"><Plus size={16} /> Novo</Button>
+                  <Button size="sm" className="bg-pink-500 hover:bg-pink-600 rounded-xl gap-2"><Plus size={16} /> Novo</Button>
                 </div>
                 <div className="grid grid-cols-1 gap-4">
                   {services.map((service) => (
