@@ -4,7 +4,7 @@ import * as React from "react";
 import { useSession } from "@/components/SessionContextProvider";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Calendar, Clock, Sparkles, User, LogOut, Instagram, History, Settings, Plus, Edit2, Trash2, ChevronRight, Heart, X, Check, DollarSign } from "lucide-react";
+import { Calendar, Clock, Sparkles, User, LogOut, Instagram, History, Settings, Plus, Pencil, Trash2, ChevronRight, Heart, X, Check, DollarSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { showError, showSuccess } from "@/utils/toast";
@@ -25,12 +25,10 @@ const Index = () => {
   const [appointments, setAppointments] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   
-  // Modais
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
   const [isServiceModalOpen, setIsServiceModalOpen] = React.useState(false);
   const [editLoading, setEditLoading] = React.useState(false);
 
-  // Forms
   const [editFormData, setEditFormData] = React.useState({
     full_name: '',
     phone: '',
@@ -51,7 +49,7 @@ const Index = () => {
 
   const fetchProfile = React.useCallback(async () => {
     if (!user?.id) return;
-    const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+    const { data } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
     if (data) {
       setProfile(data);
       setEditFormData({
@@ -78,11 +76,7 @@ const Index = () => {
       services:service_id (name, price, duration_minutes),
       available_slots:slot_id (date, start_time)
     `);
-
-    if (!isAdmin) {
-      query = query.eq('user_id', user.id);
-    }
-
+    if (!isAdmin) query = query.eq('user_id', user.id);
     const { data } = await query.order('created_at', { ascending: false });
     setAppointments(data || []);
   }, [user?.id, isAdmin]);
@@ -134,7 +128,6 @@ const Index = () => {
         duration_minutes: parseInt(serviceFormData.duration_minutes),
         description: serviceFormData.description
       };
-
       if (serviceFormData.id) {
         const { error } = await supabase.from('services').update(payload).eq('id', serviceFormData.id);
         if (error) throw error;
@@ -233,73 +226,76 @@ const Index = () => {
               <>
                 {activeTab === "home" && (
                   <motion.div key="home" variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-4">
-                    <h3 className="text-base font-bold text-gray-800 flex items-center gap-1.5">Nossos Serviços <Sparkles size={14} className="text-pink-400" /></h3>
-                    <div className="grid grid-cols-1 gap-3">
+                    <h3 className="text-[13px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2 ml-1">
+                      Nossos Serviços <Sparkles size={12} className="text-pink-300" />
+                    </h3>
+                    <div className="grid grid-cols-1 gap-2.5">
                       {services.map((service) => (
-                        <Card key={service.id} className="p-3 border-none shadow-sm rounded-2xl flex items-center gap-3 hover:shadow-md transition-shadow group">
-                          <div className="w-12 h-12 bg-pink-50 rounded-xl flex items-center justify-center text-xl group-hover:scale-110 transition-transform">💅</div>
+                        <Card key={service.id} className="p-3 border-none shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] rounded-2xl flex items-center gap-3 hover:shadow-md transition-all group bg-white/80 backdrop-blur-sm">
+                          <div className="w-10 h-10 bg-pink-50/50 rounded-xl flex items-center justify-center text-lg group-hover:scale-110 transition-transform">💅</div>
                           <div className="flex-1">
-                            <h4 className="font-bold text-gray-800 text-sm">{service.name}</h4>
-                            <div className="flex items-center gap-2 text-[9px] text-gray-400 mt-0.5 font-bold uppercase tracking-wider">
-                              <span className="flex items-center gap-1"><Clock size={10} /> {service.duration_minutes} min</span>
-                              <span className="text-pink-500">R$ {service.price}</span>
+                            <h4 className="font-bold text-slate-700 text-[12px] leading-tight">{service.name}</h4>
+                            <div className="flex items-center gap-2 text-[9px] text-slate-400 mt-0.5 font-bold uppercase tracking-wider">
+                              <span className="flex items-center gap-1"><Clock size={10} className="text-pink-200" /> {service.duration_minutes} min</span>
+                              <span className="text-pink-400/80">R$ {service.price}</span>
                             </div>
                           </div>
-                          <Button size="sm" className="bg-pink-500 hover:bg-pink-600 rounded-xl px-4 h-8 font-bold text-[10px]">Agendar</Button>
+                          <Button size="sm" className="bg-pink-500 hover:bg-pink-600 rounded-xl px-4 h-7 font-black text-[9px] tracking-wider shadow-sm active:scale-95 transition-all">AGENDAR</Button>
                         </Card>
                       ))}
                     </div>
                   </motion.div>
                 )}
+                {/* ... history and profile tabs remain same but with refined text ... */}
                 {activeTab === "history" && (
                   <motion.div key="history" variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-4">
-                    <h3 className="text-base font-bold text-gray-800">Meu Histórico</h3>
-                    <div className="space-y-3">
+                    <h3 className="text-[13px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Meu Histórico</h3>
+                    <div className="space-y-2.5">
                       {appointments.length > 0 ? appointments.map((app) => (
-                        <Card key={app.id} className="p-3 border-none shadow-sm rounded-2xl">
+                        <Card key={app.id} className="p-3 border-none shadow-sm rounded-2xl bg-white/80">
                           <div className="flex justify-between items-start">
                             <div>
-                              <h4 className="font-bold text-gray-800 text-sm">{app.services?.name}</h4>
-                              <p className="text-[10px] text-gray-400 font-medium mt-0.5">{app.available_slots?.date} às {app.available_slots?.start_time}</p>
+                              <h4 className="font-bold text-slate-700 text-[12px]">{app.services?.name}</h4>
+                              <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">{app.available_slots?.date} • {app.available_slots?.start_time}</p>
                             </div>
                             <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${app.status === 'completed' ? 'bg-green-50 text-green-500' : 'bg-blue-50 text-blue-500'}`}>
                               {app.status}
                             </span>
                           </div>
                         </Card>
-                      )) : <div className="text-center py-10 text-gray-300"><History size={40} className="mx-auto mb-2 opacity-20" /><p className="text-xs font-medium">Nenhum agendamento ainda.</p></div>}
+                      )) : <div className="text-center py-10 text-slate-300"><History size={32} className="mx-auto mb-2 opacity-20" /><p className="text-[10px] font-bold uppercase tracking-widest">Vazio</p></div>}
                     </div>
                   </motion.div>
                 )}
                 {activeTab === "profile" && (
                   <motion.div key="profile" variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-4">
-                    <h3 className="text-base font-bold text-gray-800">Meu Perfil</h3>
-                    <Card className="p-5 border-none shadow-sm rounded-[2rem] space-y-4">
+                    <h3 className="text-[13px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Meu Perfil</h3>
+                    <Card className="p-5 border-none shadow-sm rounded-[2rem] space-y-4 bg-white/80">
                       <div className="space-y-0.5">
-                        <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest ml-0.5">Nome Completo</p>
-                        <p className="font-bold text-gray-800 text-xs">{profile?.full_name || 'Não informado'}</p>
+                        <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest ml-0.5">Nome Completo</p>
+                        <p className="font-bold text-slate-700 text-[11px]">{profile?.full_name || 'Não informado'}</p>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-0.5">
-                          <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest ml-0.5">CPF</p>
-                          <p className="font-bold text-gray-800 text-xs">{profile?.cpf || '-'}</p>
+                          <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest ml-0.5">CPF</p>
+                          <p className="font-bold text-slate-700 text-[11px]">{profile?.cpf || '-'}</p>
                         </div>
                         <div className="space-y-0.5">
-                          <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest ml-0.5">Telefone</p>
-                          <p className="font-bold text-gray-800 text-xs">{profile?.phone || '-'}</p>
+                          <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest ml-0.5">Telefone</p>
+                          <p className="font-bold text-slate-700 text-[11px]">{profile?.phone || '-'}</p>
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-0.5">
-                          <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest ml-0.5">Nascimento</p>
-                          <p className="font-bold text-gray-800 text-xs">{profile?.birth_date || '-'}</p>
+                          <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest ml-0.5">Nascimento</p>
+                          <p className="font-bold text-slate-700 text-[11px]">{profile?.birth_date || '-'}</p>
                         </div>
                         <div className="space-y-0.5">
-                          <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest ml-0.5">Instagram</p>
-                          <p className="font-bold text-pink-500 text-xs">{profile?.instagram || '-'}</p>
+                          <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest ml-0.5">Instagram</p>
+                          <p className="font-bold text-pink-500 text-[11px]">{profile?.instagram || '-'}</p>
                         </div>
                       </div>
-                      <Button onClick={() => setIsEditModalOpen(true)} variant="outline" className="w-full rounded-xl border-pink-100 text-pink-500 font-bold text-[10px] h-10 hover:bg-pink-50 mt-1">Editar Dados</Button>
+                      <Button onClick={() => setIsEditModalOpen(true)} variant="outline" className="w-full rounded-xl border-pink-100 text-pink-500 font-black text-[9px] h-9 hover:bg-pink-50 mt-1 tracking-widest uppercase">EDITAR DADOS</Button>
                     </Card>
                   </motion.div>
                 )}
@@ -308,41 +304,45 @@ const Index = () => {
               <>
                 {activeTab === "home" && (
                   <motion.div key="admin-home" variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-4">
-                    <h3 className="text-base font-bold text-gray-800">Próximos Atendimentos</h3>
-                    <div className="space-y-3">
+                    <h3 className="text-[13px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Próximos Atendimentos</h3>
+                    <div className="space-y-2.5">
                       {appointments.length > 0 ? appointments.map((app) => (
-                        <Card key={app.id} className="p-3 border-none shadow-sm rounded-2xl hover:shadow-md transition-shadow">
+                        <Card key={app.id} className="p-3 border-none shadow-sm rounded-2xl hover:shadow-md transition-all bg-white/80">
                           <div className="flex justify-between items-center">
                             <div className="flex items-center gap-2.5">
-                              <div className="w-9 h-9 bg-purple-50 rounded-xl flex items-center justify-center text-purple-500 font-black text-xs">{app.profiles?.full_name?.charAt(0)}</div>
+                              <div className="w-8 h-8 bg-purple-50 rounded-xl flex items-center justify-center text-purple-400 font-black text-[10px]">{app.profiles?.full_name?.charAt(0)}</div>
                               <div>
-                                <h4 className="font-bold text-gray-800 text-xs">{app.profiles?.full_name}</h4>
-                                <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">{app.services?.name} • {app.available_slots?.start_time}</p>
+                                <h4 className="font-bold text-slate-700 text-[11px]">{app.profiles?.full_name}</h4>
+                                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">{app.services?.name} • {app.available_slots?.start_time}</p>
                               </div>
                             </div>
-                            <Button variant="ghost" size="icon" className="text-gray-300 hover:text-pink-500 h-8 w-8"><ChevronRight size={18} /></Button>
+                            <Button variant="ghost" size="icon" className="text-slate-200 hover:text-pink-400 h-8 w-8"><ChevronRight size={16} /></Button>
                           </div>
                         </Card>
-                      )) : <div className="text-center py-10 text-gray-300"><Calendar size={40} className="mx-auto mb-2 opacity-20" /><p className="text-xs font-medium">Nenhum atendimento hoje.</p></div>}
+                      )) : <div className="text-center py-10 text-slate-300"><Calendar size={32} className="mx-auto mb-2 opacity-20" /><p className="text-[10px] font-bold uppercase tracking-widest">Sem agenda</p></div>}
                     </div>
                   </motion.div>
                 )}
                 {activeTab === "services" && (
                   <motion.div key="admin-services" variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <h3 className="text-base font-bold text-gray-800">Meus Serviços</h3>
-                      <Button onClick={() => openServiceModal()} size="sm" className="bg-pink-500 hover:bg-pink-600 rounded-xl gap-1.5 font-bold text-[10px] h-8"><Plus size={14} /> Novo</Button>
+                    <div className="flex justify-between items-center px-1">
+                      <h3 className="text-[13px] font-black text-slate-400 uppercase tracking-[0.2em]">Meus Serviços</h3>
+                      <Button onClick={() => openServiceModal()} size="sm" className="bg-pink-500 hover:bg-pink-600 rounded-xl gap-1.5 font-black text-[9px] h-7 tracking-wider shadow-sm"><Plus size={12} /> NOVO</Button>
                     </div>
-                    <div className="grid grid-cols-1 gap-3">
+                    <div className="grid grid-cols-1 gap-2.5">
                       {services.map((service) => (
-                        <Card key={service.id} className="p-3 border-none shadow-sm rounded-2xl flex justify-between items-center">
+                        <Card key={service.id} className="p-3 border-none shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] rounded-2xl flex justify-between items-center bg-white/80 backdrop-blur-sm">
                           <div>
-                            <h4 className="font-bold text-gray-800 text-sm">{service.name}</h4>
-                            <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">R$ {service.price} • {service.duration_minutes} min</p>
+                            <h4 className="font-bold text-slate-700 text-[12px] leading-tight">{service.name}</h4>
+                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">R$ {service.price} • {service.duration_minutes} min</p>
                           </div>
-                          <div className="flex gap-0.5">
-                            <Button onClick={() => openServiceModal(service)} variant="ghost" size="icon" className="text-blue-400 hover:text-blue-500 h-8 w-8"><Edit2 size={14} /></Button>
-                            <Button onClick={() => handleDeleteService(service.id)} variant="ghost" size="icon" className="text-red-400 hover:text-red-500 h-8 w-8"><Trash2 size={14} /></Button>
+                          <div className="flex gap-1">
+                            <Button onClick={() => openServiceModal(service)} variant="ghost" size="icon" className="text-pink-400 hover:text-pink-600 hover:bg-pink-50 h-8 w-8 rounded-xl transition-colors">
+                              <Pencil size={14} />
+                            </Button>
+                            <Button onClick={() => handleDeleteService(service.id)} variant="ghost" size="icon" className="text-slate-300 hover:text-rose-400 hover:bg-rose-50 h-8 w-8 rounded-xl transition-colors">
+                              <Trash2 size={14} />
+                            </Button>
                           </div>
                         </Card>
                       ))}
@@ -351,8 +351,8 @@ const Index = () => {
                 )}
                 {activeTab === "calendar" && (
                   <motion.div key="admin-calendar" variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-4">
-                    <h3 className="text-base font-bold text-gray-800">Agenda do Mês</h3>
-                    <Card className="p-10 border-none shadow-sm rounded-[2rem] text-center text-gray-300"><Calendar className="mx-auto mb-3 opacity-20" size={40} /><p className="text-xs font-medium">Em breve.</p></Card>
+                    <h3 className="text-[13px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Agenda do Mês</h3>
+                    <Card className="p-10 border-none shadow-sm rounded-[2rem] text-center text-slate-200 bg-white/80"><Calendar className="mx-auto mb-3 opacity-10" size={40} /><p className="text-[10px] font-bold uppercase tracking-widest">Em breve</p></Card>
                   </motion.div>
                 )}
               </>
@@ -361,94 +361,93 @@ const Index = () => {
         </Tabs>
       </main>
 
-      {/* Modal de Perfil */}
+      {/* Modals remain same but with refined typography inside */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
         <DialogContent className="sm:max-w-[350px] rounded-[2rem] border-none shadow-2xl p-6">
-          <DialogHeader><DialogTitle className="text-lg font-bold text-gray-800 flex items-center gap-2"><Edit2 size={18} className="text-pink-500" /> Editar Perfil</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="text-sm font-black text-slate-700 uppercase tracking-widest flex items-center gap-2"><Pencil size={16} className="text-pink-500" /> Editar Perfil</DialogTitle></DialogHeader>
           <form onSubmit={handleUpdateProfile} className="space-y-4 mt-2">
             <div className="space-y-1">
-              <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-2">Nome Completo</Label>
-              <Input required className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-11 text-xs" value={editFormData.full_name} onChange={(e) => setEditFormData({ ...editFormData, full_name: e.target.value })} />
+              <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">Nome Completo</Label>
+              <Input required className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[11px]" value={editFormData.full_name} onChange={(e) => setEditFormData({ ...editFormData, full_name: e.target.value })} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-2">CPF</Label>
-                <InputMask mask="999.999.999-99" value={editFormData.cpf} onChange={(e) => setEditFormData({ ...editFormData, cpf: e.target.value })}>{(inputProps: any) => <Input required className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-11 text-xs" {...inputProps} />}</InputMask>
+                <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">CPF</Label>
+                <InputMask mask="999.999.999-99" value={editFormData.cpf} onChange={(e) => setEditFormData({ ...editFormData, cpf: e.target.value })}>{(inputProps: any) => <Input required className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[11px]" {...inputProps} />}</InputMask>
               </div>
               <div className="space-y-1">
-                <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-2">Telefone</Label>
-                <InputMask mask="(99) 99999-9999" value={editFormData.phone} onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}>{(inputProps: any) => <Input required className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-11 text-xs" {...inputProps} />}</InputMask>
+                <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">Telefone</Label>
+                <InputMask mask="(99) 99999-9999" value={editFormData.phone} onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}>{(inputProps: any) => <Input required className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[11px]" {...inputProps} />}</InputMask>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-2">Nascimento</Label>
-                <InputMask mask="99/99/9999" value={editFormData.birth_date} onChange={(e) => setEditFormData({ ...editFormData, birth_date: e.target.value })}>{(inputProps: any) => <Input required placeholder="DD/MM/AAAA" className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-11 text-xs" {...inputProps} />}</InputMask>
+                <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">Nascimento</Label>
+                <InputMask mask="99/99/9999" value={editFormData.birth_date} onChange={(e) => setEditFormData({ ...editFormData, birth_date: e.target.value })}>{(inputProps: any) => <Input required placeholder="DD/MM/AAAA" className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[11px]" {...inputProps} />}</InputMask>
               </div>
               <div className="space-y-1">
-                <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-2">Instagram (@)</Label>
-                <Input className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-11 text-xs" value={editFormData.instagram} onChange={(e) => setEditFormData({ ...editFormData, instagram: e.target.value })} />
+                <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">Instagram (@)</Label>
+                <Input className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[11px]" value={editFormData.instagram} onChange={(e) => setEditFormData({ ...editFormData, instagram: e.target.value })} />
               </div>
             </div>
-            <DialogFooter className="pt-2"><Button type="submit" disabled={editLoading} className="w-full bg-pink-600 hover:bg-pink-700 text-white font-bold text-[11px] py-6 rounded-2xl shadow-md">{editLoading ? 'Salvando...' : 'SALVAR ALTERAÇÕES'}</Button></DialogFooter>
+            <DialogFooter className="pt-2"><Button type="submit" disabled={editLoading} className="w-full bg-pink-600 hover:bg-pink-700 text-white font-black text-[10px] py-6 rounded-2xl shadow-md tracking-widest uppercase">{editLoading ? 'SALVANDO...' : 'SALVAR ALTERAÇÕES'}</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Serviço (Admin) */}
       <Dialog open={isServiceModalOpen} onOpenChange={setIsServiceModalOpen}>
         <DialogContent className="sm:max-w-[350px] rounded-[2rem] border-none shadow-2xl p-6">
-          <DialogHeader><DialogTitle className="text-lg font-bold text-gray-800 flex items-center gap-2"><Sparkles size={18} className="text-pink-500" /> {serviceFormData.id ? 'Editar Serviço' : 'Novo Serviço'}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="text-sm font-black text-slate-700 uppercase tracking-widest flex items-center gap-2"><Sparkles size={16} className="text-pink-500" /> {serviceFormData.id ? 'Editar Serviço' : 'Novo Serviço'}</DialogTitle></DialogHeader>
           <form onSubmit={handleSaveService} className="space-y-4 mt-2">
             <div className="space-y-1">
-              <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-2">Nome do Serviço</Label>
-              <Input required className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-11 text-xs" value={serviceFormData.name} onChange={(e) => setServiceFormData({ ...serviceFormData, name: e.target.value })} />
+              <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">Nome do Serviço</Label>
+              <Input required className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[11px]" value={serviceFormData.name} onChange={(e) => setServiceFormData({ ...serviceFormData, name: e.target.value })} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-2">Preço (R$)</Label>
-                <Input required type="number" step="0.01" className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-11 text-xs" value={serviceFormData.price} onChange={(e) => setServiceFormData({ ...serviceFormData, price: e.target.value })} />
+                <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">Preço (R$)</Label>
+                <Input required type="number" step="0.01" className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[11px]" value={serviceFormData.price} onChange={(e) => setServiceFormData({ ...serviceFormData, price: e.target.value })} />
               </div>
               <div className="space-y-1">
-                <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-2">Duração (min)</Label>
-                <Input required type="number" className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-11 text-xs" value={serviceFormData.duration_minutes} onChange={(e) => setServiceFormData({ ...serviceFormData, duration_minutes: e.target.value })} />
+                <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">Duração (min)</Label>
+                <Input required type="number" className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[11px]" value={serviceFormData.duration_minutes} onChange={(e) => setServiceFormData({ ...serviceFormData, duration_minutes: e.target.value })} />
               </div>
             </div>
             <div className="space-y-1">
-              <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-2">Descrição (Opcional)</Label>
-              <Textarea className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 text-xs min-h-[80px]" value={serviceFormData.description} onChange={(e) => setServiceFormData({ ...serviceFormData, description: e.target.value })} />
+              <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">Descrição (Opcional)</Label>
+              <Textarea className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 text-[11px] min-h-[80px]" value={serviceFormData.description} onChange={(e) => setServiceFormData({ ...serviceFormData, description: e.target.value })} />
             </div>
-            <DialogFooter className="pt-2"><Button type="submit" disabled={editLoading} className="w-full bg-pink-600 hover:bg-pink-700 text-white font-bold text-[11px] py-6 rounded-2xl shadow-md">{editLoading ? 'Salvando...' : 'SALVAR SERVIÇO'}</Button></DialogFooter>
+            <DialogFooter className="pt-2"><Button type="submit" disabled={editLoading} className="w-full bg-pink-600 hover:bg-pink-700 text-white font-black text-[10px] py-6 rounded-2xl shadow-md tracking-widest uppercase">{editLoading ? 'SALVANDO...' : 'SALVAR SERVIÇO'}</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
       {/* Footer Credits */}
-      <footer className="pt-12 pb-24 flex flex-col items-center gap-1.5 text-black">
-        <p className="text-[8px] font-black tracking-[0.2em] uppercase">Desenvolvido por Matheus Souza</p>
+      <footer className="pt-12 pb-24 flex flex-col items-center gap-1.5 text-slate-900">
+        <p className="text-[7px] font-black tracking-[0.2em] uppercase opacity-40">Desenvolvido por Matheus Souza</p>
         <div className="flex items-center gap-4">
-          <p className="text-[8px] font-bold opacity-80">© 2026 MATHEUS SOUZA</p>
+          <p className="text-[7px] font-bold opacity-30">© 2026 MATHEUS SOUZA</p>
           <a href="https://instagram.com/theu_souz2" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-pink-600 transition-colors group">
-            <Instagram size={12} className="group-hover:scale-110 transition-transform" />
-            <span className="text-[9px] font-black">@theu_souz2</span>
+            <Instagram size={10} className="group-hover:scale-110 transition-transform opacity-40" />
+            <span className="text-[8px] font-black opacity-40">@theu_souz2</span>
           </a>
         </div>
       </footer>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-4 left-4 right-4 bg-white/90 backdrop-blur-xl border border-white/40 h-14 rounded-[1.5rem] shadow-xl flex items-center justify-around px-2 z-50">
-        <button onClick={() => setActiveTab('home')} className={`p-2.5 rounded-xl transition-all ${activeTab === 'home' ? 'text-pink-500 bg-pink-50 scale-105' : 'text-gray-300 hover:text-pink-300'}`}>
-          <Sparkles size={20} className={activeTab === 'home' ? 'animate-pulse' : ''} />
+      <nav className="fixed bottom-4 left-4 right-4 bg-white/80 backdrop-blur-xl border border-white/40 h-14 rounded-[1.5rem] shadow-xl flex items-center justify-around px-2 z-50">
+        <button onClick={() => setActiveTab('home')} className={`p-2.5 rounded-xl transition-all ${activeTab === 'home' ? 'text-pink-500 bg-pink-50/50 scale-105' : 'text-slate-300 hover:text-pink-300'}`}>
+          <Sparkles size={18} className={activeTab === 'home' ? 'animate-pulse' : ''} />
         </button>
         {isAdmin ? (
           <>
-            <button onClick={() => setActiveTab('services')} className={`p-2.5 rounded-xl transition-all ${activeTab === 'services' ? 'text-pink-500 bg-pink-50 scale-105' : 'text-gray-300 hover:text-pink-300'}`}><Settings size={20} /></button>
-            <button onClick={() => setActiveTab('calendar')} className={`p-2.5 rounded-xl transition-all ${activeTab === 'calendar' ? 'text-pink-500 bg-pink-50 scale-105' : 'text-gray-300 hover:text-pink-300'}`}><Calendar size={20} /></button>
+            <button onClick={() => setActiveTab('services')} className={`p-2.5 rounded-xl transition-all ${activeTab === 'services' ? 'text-pink-500 bg-pink-50/50 scale-105' : 'text-slate-300 hover:text-pink-300'}`}><Settings size={18} /></button>
+            <button onClick={() => setActiveTab('calendar')} className={`p-2.5 rounded-xl transition-all ${activeTab === 'calendar' ? 'text-pink-500 bg-pink-50/50 scale-105' : 'text-slate-300 hover:text-pink-300'}`}><Calendar size={18} /></button>
           </>
         ) : (
           <>
-            <button onClick={() => setActiveTab('history')} className={`p-2.5 rounded-xl transition-all ${activeTab === 'history' ? 'text-pink-500 bg-pink-50 scale-105' : 'text-gray-300 hover:text-pink-300'}`}><History size={20} /></button>
-            <button onClick={() => setActiveTab('profile')} className={`p-2.5 rounded-xl transition-all ${activeTab === 'profile' ? 'text-pink-500 bg-pink-50 scale-105' : 'text-gray-300 hover:text-pink-300'}`}><User size={20} /></button>
+            <button onClick={() => setActiveTab('history')} className={`p-2.5 rounded-xl transition-all ${activeTab === 'history' ? 'text-pink-500 bg-pink-50/50 scale-105' : 'text-slate-300 hover:text-pink-300'}`}><History size={18} /></button>
+            <button onClick={() => setActiveTab('profile')} className={`p-2.5 rounded-xl transition-all ${activeTab === 'profile' ? 'text-pink-500 bg-pink-50/50 scale-105' : 'text-slate-300 hover:text-pink-300'}`}><User size={18} /></button>
           </>
         )}
       </nav>
