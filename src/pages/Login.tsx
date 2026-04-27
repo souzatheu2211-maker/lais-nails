@@ -24,23 +24,20 @@ const Login = () => {
       <div className="absolute top-[-10%] left-[-10%] w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse" />
       <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-purple-900/20 rounded-full blur-3xl animate-bounce duration-[10s]" />
 
-      <div className="w-full max-w-[360px] bg-white/90 backdrop-blur-2xl rounded-[3.5rem] shadow-[0_32px_64px_-15px_rgba(0,0,0,0.2)] p-10 border border-white/50 relative z-10 animate-in fade-in zoom-in duration-700 slide-in-from-bottom-8">
-        <div className="text-center mb-8">
-          {/* Ícone Animado de volta */}
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-gradient-to-tr from-purple-600 to-pink-500 rounded-2xl shadow-lg mb-6 animate-bounce duration-[3s]">
-            <Sparkles className="text-white" size={28} />
-          </div>
-          
-          <div className="flex justify-center mb-3">
-            <img 
-              src="/logo.png" 
-              alt="Lais Nails Logo" 
-              className="w-48 h-auto object-contain animate-in fade-in duration-1000"
-            />
-          </div>
-          <p className="text-gray-400 text-[10px] font-bold uppercase tracking-[0.2em]">Sua beleza, nossa arte</p>
+      {/* Logo e Ícone fora da caixa */}
+      <div className="flex flex-col items-center mb-8 animate-in fade-in slide-in-from-top-4 duration-1000 relative z-10">
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl shadow-xl mb-6 animate-bounce duration-[3s] border border-white/30">
+          <Sparkles className="text-white" size={32} />
         </div>
-        
+        <img 
+          src="/logo.png" 
+          alt="Lais Nails Logo" 
+          className="w-64 h-auto object-contain drop-shadow-2xl"
+        />
+        <p className="text-white/80 text-[10px] font-bold uppercase tracking-[0.3em] mt-2">Sua beleza, nossa arte</p>
+      </div>
+
+      <div className="w-full max-w-[360px] bg-white/95 backdrop-blur-2xl rounded-[3.5rem] shadow-[0_32px_64px_-15px_rgba(0,0,0,0.3)] p-10 border border-white/50 relative z-10 animate-in fade-in zoom-in duration-700">
         <div className="auth-container">
           <Auth
             supabaseClient={supabase}
@@ -52,10 +49,10 @@ const Login = () => {
                   colors: {
                     brand: '#db2777',
                     brandAccent: '#be185d',
-                    inputBackground: 'transparent',
-                    inputText: '#1f2937',
+                    inputBackground: '#f9fafb',
+                    inputText: '#000000',
                     inputPlaceholder: '#9ca3af',
-                    inputBorder: '#f3f4f6',
+                    inputBorder: '#e5e7eb',
                     inputBorderFocus: '#ec4899',
                     inputBorderHover: '#f472b6',
                   },
@@ -70,30 +67,34 @@ const Login = () => {
                 }
               },
               className: {
-                button: 'font-bold text-sm py-3 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md',
-                input: 'bg-gray-50/50 border-gray-100 focus:bg-white transition-all py-6 text-sm',
-                label: 'text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1 mb-2',
+                button: 'font-bold text-sm py-3.5 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg mt-4',
+                input: 'border-gray-200 focus:bg-white transition-all py-6 text-sm font-medium',
+                label: 'text-[11px] font-black text-black uppercase tracking-wider ml-1 mb-2',
               }
             }}
             localization={{
               variables: {
                 sign_in: {
-                  email_label: 'E-mail',
-                  password_label: 'Senha',
-                  button_label: 'Entrar na conta',
-                  loading_button_label: 'Entrando...',
+                  email_label: 'SEU EMAIL',
+                  password_label: 'SUA SENHA',
+                  email_input_placeholder: 'SEU EMAIL',
+                  password_input_placeholder: 'SUA SENHA',
+                  button_label: 'ENTRAR NA CONTA',
+                  loading_button_label: 'ENTRANDO...',
                   link_text: 'Já tem uma conta? Entre aqui',
                 },
                 sign_up: {
-                  email_label: 'E-mail',
-                  password_label: 'Senha',
-                  button_label: 'Criar minha conta',
-                  loading_button_label: 'Criando...',
+                  email_label: 'SEU EMAIL',
+                  password_label: 'SUA SENHA',
+                  email_input_placeholder: 'SEU EMAIL',
+                  password_input_placeholder: 'SUA SENHA',
+                  button_label: 'CRIAR MINHA CONTA',
+                  loading_button_label: 'CRIANDO...',
                   link_text: 'Não tem conta? Cadastre-se',
                 },
                 forgotten_password: {
-                  email_label: 'E-mail',
-                  button_label: 'Recuperar senha',
+                  email_label: 'SEU EMAIL',
+                  button_label: 'RECUPERAR SENHA',
                   link_text: 'Esqueceu sua senha?',
                 }
               }
@@ -103,7 +104,7 @@ const Login = () => {
         </div>
       </div>
       
-      <div className="mt-8 flex flex-col items-center gap-2 relative z-10 text-white/70">
+      <div className="mt-10 flex flex-col items-center gap-2 relative z-10 text-white/80">
         <p className="text-[10px] font-bold tracking-[0.2em] uppercase">
           Desenvolvido por Matheus Souza
         </p>
