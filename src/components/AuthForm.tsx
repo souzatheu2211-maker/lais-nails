@@ -119,16 +119,6 @@ export const AuthForm = () => {
           />
         </div>
 
-        {!isSignUp && (
-          <button 
-            type="button"
-            className="text-[10px] text-pink-600 font-medium hover:underline block w-full text-right"
-            onClick={() => showSuccess("Enviamos um link para seu email!")}
-          >
-            (Esqueceu sua senha, gata?)
-          </button>
-        )}
-
         <Button 
           type="submit" 
           disabled={loading}
@@ -138,7 +128,16 @@ export const AuthForm = () => {
         </Button>
       </form>
 
-      <div className="text-center pt-2">
+      <div className="text-center pt-2 flex flex-col items-center gap-2">
+        {!isSignUp && (
+          <button 
+            type="button"
+            className="text-[10px] text-pink-600 font-medium hover:underline"
+            onClick={() => showSuccess("Enviamos um link para seu email!")}
+          >
+            (Esqueceu sua senha, gata?)
+          </button>
+        )}
         <button
           onClick={() => setIsSignUp(!isSignUp)}
           className="text-[11px] text-gray-500 font-semibold hover:text-pink-600 transition-colors"
