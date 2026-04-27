@@ -29,8 +29,8 @@ const Login = () => {
         
         {/* Logo e Título */}
         <div className="flex flex-col items-center mb-4 animate-in fade-in slide-in-from-top-4 duration-1000">
-          <div className="inline-flex items-center justify-center w-10 h-10 bg-white/10 backdrop-blur-md rounded-full mb-2 border border-white/20">
-            <Sparkles className="text-white/80" size={20} />
+          <div className="inline-flex items-center justify-center w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl shadow-xl mb-2 animate-bounce duration-[3s] border border-white/30">
+            <Sparkles className="text-white" size={24} />
           </div>
           <img 
             src="/logo.png" 
