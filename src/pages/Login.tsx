@@ -20,28 +20,24 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-start bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-purple-600 via-pink-500 to-rose-400 p-4 overflow-hidden relative">
-      {/* Elementos decorativos animados de fundo */}
-      <div className="absolute top-[-10%] left-[-10%] w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-purple-900/20 rounded-full blur-3xl animate-bounce duration-[10s]" />
+      {/* Elementos decorativos de fundo mais suaves */}
+      <div className="absolute top-[-5%] left-[-5%] w-64 h-64 bg-white/5 rounded-full blur-3xl animate-pulse" />
+      <div className="absolute bottom-[-5%] right-[-5%] w-80 h-80 bg-purple-900/10 rounded-full blur-3xl" />
 
-      {/* Container Principal - Alinhado ao topo com padding mínimo */}
-      <div className="w-full flex flex-col items-center justify-start relative z-10 pt-2 pb-8">
+      {/* Container Principal */}
+      <div className="w-full flex flex-col items-center justify-start relative z-10 pt-6 pb-8">
         
-        {/* Logo e Ícone - Reduzi as margens para subir tudo */}
+        {/* Logo e Título Cursivo */}
         <div className="flex flex-col items-center mb-4 animate-in fade-in slide-in-from-top-4 duration-1000">
-          <div className="inline-flex items-center justify-center w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl shadow-xl mb-2 animate-bounce duration-[3s] border border-white/30">
-            <Sparkles className="text-white" size={24} />
+          <div className="inline-flex items-center justify-center w-10 h-10 bg-white/10 backdrop-blur-md rounded-full mb-2 border border-white/20">
+            <Sparkles className="text-white/80" size={20} />
           </div>
-          <img 
-            src="/logo.png" 
-            alt="Lais Nails Logo" 
-            className="w-44 h-auto object-contain drop-shadow-2xl"
-          />
-          <p className="text-white/90 text-[8px] font-black uppercase tracking-[0.4em] mt-1">Sua beleza, nossa arte</p>
+          <h1 className="text-white text-4xl font-['Dancing_Script'] drop-shadow-md">Lais Nails</h1>
+          <p className="text-white/70 text-[10px] font-light tracking-[0.3em] uppercase mt-1">Sua beleza, nossa arte</p>
         </div>
 
-        {/* Caixa de Login Otimizada para Mobile */}
-        <div className="w-full max-w-[310px] bg-white/95 backdrop-blur-2xl rounded-[3rem] shadow-[0_32px_64px_-15px_rgba(0,0,0,0.3)] p-8 border border-white/50 animate-in fade-in zoom-in duration-700">
+        {/* Caixa de Login - Menor e mais Clean */}
+        <div className="w-full max-w-[280px] bg-white/90 backdrop-blur-xl rounded-[2.5rem] shadow-2xl p-6 border border-white/40 animate-in fade-in zoom-in duration-700">
           <div className="auth-container">
             <Auth
               supabaseClient={supabase}
@@ -53,16 +49,16 @@ const Login = () => {
                     colors: {
                       brand: '#db2777',
                       brandAccent: '#be185d',
-                      inputBackground: '#f9fafb',
-                      inputText: '#000000',
+                      inputBackground: 'transparent',
+                      inputText: '#1f2937',
                       inputPlaceholder: '#9ca3af',
-                      inputBorder: '#e5e7eb',
+                      inputBorder: '#f3f4f6',
                       inputBorderFocus: '#ec4899',
                       inputBorderHover: '#f472b6',
                     },
                     radii: {
-                      buttonRadius: '18px',
-                      inputRadius: '14px',
+                      buttonRadius: '12px',
+                      inputRadius: '10px',
                     },
                     fonts: {
                       bodyFontFamily: `'Inter', sans-serif`,
@@ -71,33 +67,27 @@ const Login = () => {
                   }
                 },
                 className: {
-                  button: 'font-black text-xs py-3 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg mt-2 tracking-wider',
-                  input: 'border-gray-100 focus:bg-white transition-all py-5 text-sm font-medium',
-                  label: 'text-[10px] font-black text-gray-800 uppercase tracking-widest ml-1 mb-1.5',
+                  button: 'font-bold text-[11px] py-2.5 transition-all hover:opacity-90 active:scale-95 shadow-md mt-1',
+                  input: 'border-b border-t-0 border-x-0 rounded-none bg-transparent focus:ring-0 px-1 py-2 text-sm',
+                  label: 'text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-0 mb-0',
+                  container: 'gap-3',
                 }
               }}
               localization={{
                 variables: {
                   sign_in: {
-                    email_label: 'SEU EMAIL',
-                    password_label: 'SUA SENHA',
-                    email_input_placeholder: 'exemplo@email.com',
-                    password_input_placeholder: '••••••••',
-                    button_label: 'ENTRAR AGORA',
-                    loading_button_label: 'PROCESSANDO...',
-                    link_text: 'Não tem conta? Cadastre-se',
+                    email_label: 'Email',
+                    password_label: 'Senha',
+                    email_input_placeholder: 'Seu email...',
+                    password_input_placeholder: 'Sua senha...',
+                    button_label: 'Entrar',
+                    link_text: 'Criar conta',
                   },
                   sign_up: {
-                    email_label: 'SEU EMAIL',
-                    password_label: 'SUA SENHA',
-                    button_label: 'CRIAR CONTA',
-                    loading_button_label: 'CRIANDO...',
-                    link_text: 'Já tem conta? Entre aqui',
-                  },
-                  forgotten_password: {
-                    email_label: 'SEU EMAIL',
-                    button_label: 'RECUPERAR ACESSO',
-                    link_text: 'Esqueceu a senha?',
+                    email_label: 'Email',
+                    password_label: 'Senha',
+                    button_label: 'Cadastrar',
+                    link_text: 'Já tenho conta',
                   }
                 }
               }}
@@ -107,22 +97,22 @@ const Login = () => {
         </div>
 
         {/* Footer Credits */}
-        <div className="mt-8 flex flex-col items-center gap-1.5 text-white/80">
-          <p className="text-[9px] font-black tracking-[0.2em] uppercase">
+        <div className="mt-8 flex flex-col items-center gap-1 text-white/60">
+          <p className="text-[8px] font-medium tracking-[0.2em] uppercase">
             DESENVOLVIDO POR MATHEUS SOUZA
           </p>
-          <div className="flex items-center gap-3">
-            <p className="text-[9px] font-medium opacity-60">
+          <div className="flex items-center gap-2">
+            <p className="text-[8px] font-light">
               © 2026 MATHEUS SOUZA
             </p>
             <a 
               href="https://instagram.com/theu_souz2" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="flex items-center gap-1 hover:text-white transition-colors group"
+              className="flex items-center gap-1 hover:text-white transition-colors"
             >
-              <Instagram size={12} className="group-hover:scale-110 transition-transform" />
-              <span className="text-[10px] font-bold">@theu_souz2</span>
+              <Instagram size={10} />
+              <span className="text-[9px] font-semibold">@theu_souz2</span>
             </a>
           </div>
         </div>
