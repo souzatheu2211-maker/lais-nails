@@ -620,7 +620,16 @@ const Index = () => {
                                 )}
                               </div>
                             </div>
-                            <Button variant="ghost" size="icon" className="text-slate-200 hover:text-pink-400 h-8 w-8"><ChevronRight size={16} /></Button>
+                            <div className="flex flex-col items-end gap-1">
+                              <span className={`text-[7px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${
+                                app.status === 'completed' ? 'bg-green-50 text-green-500' : 
+                                app.status === 'cancelled' ? 'bg-rose-50 text-rose-500' : 
+                                'bg-blue-50 text-blue-500'
+                              }`}>
+                                {app.status === 'scheduled' ? 'Agendado' : app.status === 'cancelled' ? 'Cancelado' : 'Concluído'}
+                              </span>
+                              <Button variant="ghost" size="icon" className="text-slate-200 hover:text-pink-400 h-8 w-8"><ChevronRight size={16} /></Button>
+                            </div>
                           </div>
                         </Card>
                       )) : <div className="text-center py-10 text-slate-300"><CalendarIcon size={32} className="mx-auto mb-2 opacity-20" /><p className="text-[10px] font-bold uppercase tracking-widest">Sem agenda</p></div>}
@@ -669,7 +678,7 @@ const Index = () => {
                         locale={ptBR}
                         className="rounded-2xl border-none mx-auto"
                         classNames={{
-                          day_selected: "bg-pink-500 text-white hover:bg-pink-600 focus:bg-pink-500 rounded-xl",
+                          day_selected: "bg-pink-500 text-white hover:bg-pink-600 focus:bg-pink-500 rounded-xl font-black",
                           day_today: "bg-slate-100 text-slate-900 rounded-xl",
                           day: "h-9 w-9 p-0 font-bold text-[10px] rounded-xl hover:bg-pink-50 transition-colors text-slate-900",
                           head_cell: "text-slate-400 font-black text-[9px] uppercase tracking-widest w-9",
@@ -911,7 +920,7 @@ const Index = () => {
                   disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
                   className="rounded-2xl border-none mx-auto"
                   classNames={{
-                    day_selected: "bg-gradient-to-br from-purple-600 to-pink-500 text-white hover:from-purple-700 hover:to-pink-600 focus:from-purple-600 focus:to-pink-500 rounded-xl shadow-lg shadow-purple-200/50 scale-110 transition-all",
+                    day_selected: "bg-pink-500 text-white hover:bg-pink-600 focus:bg-pink-500 rounded-xl font-black scale-110 transition-all shadow-lg shadow-pink-200/50",
                     day_today: "bg-white text-pink-500 border-2 border-pink-100 rounded-xl font-black",
                     day: "h-9 w-9 p-0 font-bold text-[11px] rounded-xl hover:bg-pink-50 transition-all text-slate-900 relative",
                     head_cell: "text-slate-400 font-black text-[9px] uppercase tracking-widest w-9",
@@ -943,7 +952,7 @@ const Index = () => {
                           isOccupied 
                             ? 'bg-rose-50 border-rose-200 text-rose-500 cursor-not-allowed' 
                             : isSelected 
-                              ? 'bg-gradient-to-br from-purple-600 to-pink-500 border-transparent text-white shadow-lg shadow-purple-200/50 scale-105' 
+                              ? 'bg-pink-500 border-transparent text-white shadow-lg shadow-pink-200/50 scale-105' 
                               : 'bg-emerald-50 border-emerald-100 text-emerald-600 hover:border-emerald-300'
                         }`}
                       >
