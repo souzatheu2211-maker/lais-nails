@@ -704,7 +704,7 @@ const Index = () => {
                           {timeSlots.map((time) => {
                             const isSelected = availableSlots.includes(time);
                             return (
-                              <button key={time} onClick={() => toggleSlot(time)} className={`h-9 rounded-xl text-[10px] font-black transition-all border-2 ${isSelected ? 'bg-pink-500 border-pink-500 text-white shadow-md scale-105' : 'bg-white border-slate-100 text-slate-400 hover:border-pink-200'}`}>
+                              <button key={time} onClick={() => toggleSlot(time)} className={`h-9 rounded-xl text-[10px] font-black transition-all border-2 ${isSelected ? 'bg-pink-500 border-pink-500 text-white shadow-md scale-105' : 'bg-slate-200 border-slate-300 text-slate-400 hover:border-pink-200'}`}>
                                 {time}
                               </button>
                             );
