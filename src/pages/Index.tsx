@@ -439,19 +439,6 @@ const Index = () => {
     exit: { opacity: 0, y: -10 }
   };
 
-  // Estilo comum para o calendário (sem preto)
-  const calendarClassNames = {
-    day_selected: "!bg-pink-500 !text-white hover:!bg-pink-600 focus:!bg-pink-500 rounded-2xl shadow-lg shadow-pink-200/50 scale-110 transition-all",
-    day_today: "bg-pink-50 text-pink-600 rounded-2xl font-black border border-pink-100",
-    day: "h-10 w-10 p-0 font-bold text-[11px] rounded-2xl hover:bg-pink-50 transition-all text-slate-500",
-    head_cell: "text-pink-300 font-black text-[10px] uppercase tracking-widest w-10 pb-4",
-    nav_button: "h-8 w-8 bg-pink-50/50 p-0 opacity-70 hover:opacity-100 text-pink-500 rounded-xl",
-    table: "w-full border-collapse space-y-1",
-    head_row: "flex",
-    row: "flex w-full mt-2",
-    day_disabled: "text-slate-200 opacity-30 cursor-not-allowed",
-  };
-
   if (!session) return null;
 
   return (
@@ -471,7 +458,7 @@ const Index = () => {
           <div className="flex justify-between w-full items-center mb-2">
             <div className="w-8" />
             <img src="/logo.png" alt="Lais Nails Logo" className="h-14 w-auto object-contain drop-shadow-sm" />
-            <Button variant="ghost" size="icon" onClick={handleLogout} className="text-gray-300 hover:text-pink-500 h-8 w-8">
+            <Button variant="ghost" size="icon" onClick={handleLogout} className="text-slate-300 hover:text-pink-500 h-8 w-8">
               <LogOut size={18} />
             </Button>
           </div>
@@ -701,7 +688,6 @@ const Index = () => {
                         onSelect={setSelectedDate}
                         locale={ptBR}
                         className="rounded-2xl border-none mx-auto"
-                        classNames={calendarClassNames}
                       />
                     </Card>
                     {selectedDate && (
@@ -937,7 +923,6 @@ const Index = () => {
                   locale={ptBR}
                   disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
                   className="rounded-2xl border-none mx-auto"
-                  classNames={calendarClassNames}
                 />
               </Card>
             </div>
