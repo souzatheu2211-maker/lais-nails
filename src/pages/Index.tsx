@@ -615,15 +615,32 @@ const Index = () => {
                                 <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
                                   {app.services?.name} • {app.start_time?.substring(0, 5)} - {app.end_time?.substring(0, 5)}
                                 </p>
-                                {app.status === 'cancelled' && (
-                                  <div className="flex flex-col gap-0.5 mt-1">
-                                    <span className="text-[7px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tighter bg-rose-50 text-rose-500 w-fit">Cancelado</span>
+                                <div className="flex flex-col gap-0.5 mt-1">
+                                  <span className={`text-[7px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tighter w-fit ${
+                                    app.status === 'cancelled' ? 'bg-rose-50 text-rose-500' : 
+                                    app.status === 'completed' ? 'bg-green-50 text-green-500' : 
+                                    'bg-blue-50 text-blue-500'
+                                  }`}>
+                                    {app.status === 'scheduled' ? 'Agendado' : app.status === 'cancelled' ? 'Cancelado' : 'Concluído'}
+                                  </span>
+                                  {app.status === 'cancelled' && app.cancellation_reason && (
                                     <p className="text-[8px] text-rose-400 font-bold uppercase italic">Motivo: {app.cancellation_reason}</p>
-                                  </div>
-                                )}
+                                  )}
+                                </div>
                               </div>
                             </div>
-                            <Button variant="ghost" size="icon" className="text-slate-200 hover:text-pink-400 h-8 w-8"><ChevronRight size={16} /></Button>
+                            <div className="flex items-center gap-1">
+                              {app.status === 'scheduled' && (
+                                <Button 
+                                  onClick={() => openCancelModal(app)}
+                                  variant="ghost" 
+                                  className="h-8 px-2 text-[8px] font-black text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg tracking-widest uppercase"
+                                >
+                                  CANCELAR
+                                </Button>
+                              )}
+                              <Button variant="ghost" size="icon" className="text-slate-200 hover:text-pink-400 h-8 w-8"><ChevronRight size={16} /></Button>
+                            </div>
                           </div>
                         </Card>
                       )) : <div className="text-center py-10 text-slate-300"><CalendarIcon size={32} className="mx-auto mb-2 opacity-20" /><p className="text-[10px] font-bold uppercase tracking-widest">Sem agenda</p></div>}
@@ -672,7 +689,7 @@ const Index = () => {
                         locale={ptBR}
                         className="rounded-2xl border-none mx-auto"
                         classNames={{
-                          day_selected: "bg-pink-500 text-white hover:bg-pink-600 focus:bg-pink-500 rounded-xl shadow-md",
+                          day_selected: "!bg-pink-500 !text-white hover:!bg-pink-600 focus:!bg-pink-500 rounded-xl shadow-md",
                           day_today: "bg-slate-100 text-slate-900 rounded-xl",
                           day: "h-9 w-9 p-0 font-bold text-[10px] rounded-xl hover:bg-pink-50 transition-colors text-slate-900",
                           head_cell: "text-slate-400 font-black text-[9px] uppercase tracking-widest w-9",
@@ -914,7 +931,7 @@ const Index = () => {
                   disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
                   className="rounded-2xl border-none mx-auto"
                   classNames={{
-                    day_selected: "bg-pink-500 text-white hover:bg-pink-600 focus:bg-pink-500 rounded-xl shadow-lg shadow-pink-200/50 scale-105 transition-all",
+                    day_selected: "!bg-pink-500 !text-white hover:!bg-pink-600 focus:!bg-pink-500 rounded-xl shadow-lg shadow-pink-200/50 scale-105 transition-all",
                     day_today: "bg-white text-pink-500 border-2 border-pink-100 rounded-xl font-black",
                     day: "h-9 w-9 p-0 font-bold text-[11px] rounded-xl hover:bg-pink-50 transition-all text-slate-900 relative",
                     head_cell: "text-slate-400 font-black text-[9px] uppercase tracking-widest w-9",
@@ -944,7 +961,7 @@ const Index = () => {
                         onClick={() => setSelectedSlot(slot)}
                         className={`h-10 rounded-xl text-[10px] font-black transition-all border-2 flex items-center justify-center gap-1 relative overflow-hidden ${
                           isOccupied 
-                            ? 'bg-rose-50 border-rose-200 text-rose-500 cursor-not-allowed' 
+                            ? 'bg-rose-500 border-rose-600 text-white cursor-not-allowed shadow-sm' 
                             : isSelected 
                               ? 'bg-pink-500 border-transparent text-white shadow-lg shadow-pink-200/50 scale-105' 
                               : 'bg-emerald-50 border-emerald-100 text-emerald-600 hover:border-emerald-300'
