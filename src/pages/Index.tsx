@@ -4,7 +4,7 @@ import * as React from "react";
 import { useSession } from "@/components/SessionContextProvider";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Calendar as CalendarIcon, Clock, Sparkles, User, LogOut, Instagram, History, Settings, Plus, Pencil, Trash2, ChevronRight, Heart, X, Check, DollarSign, Save, Info, Image as ImageIcon } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Sparkles, User, LogOut, Instagram, History, Settings, Plus, Pencil, Trash2, ChevronRight, Heart, X, Check, DollarSign, Save, Info, Image as ImageIcon, Upload, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { showError, showSuccess } from "@/utils/toast";
@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { motion, AnimatePresence } from "framer-motion";
 import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
+import { format, addMinutes, parse } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import InputMask from 'react-input-mask';
 
@@ -38,7 +38,7 @@ const Index = () => {
   const [bookingService, setBookingService] = React.useState<any>(null);
   const [bookingDate, setBookingDate] = React.useState<Date | undefined>(new Date());
   const [availableBookingSlots, setAvailableBookingSlots] = React.useState<any[]>([]);
-  const [selectedSlotId, setSelectedSlotId] = React.useState<string | null>(null);
+  const [selectedSlot, setSelectedSlot] = React.useState<any>(null);
   const [bookingLoading, setBookingLoading] = React.useState(false);
 
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
@@ -46,6 +46,7 @@ const Index = () => {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = React.useState(false);
   const [selectedService, setSelectedService] = React.useState<any>(null);
   const [editLoading, setEditLoading] = React.useState(false);
+  const [uploadingImage, setUploadingImage] = React.useState(false);
 
   const [editFormData, setEditFormData] = React.useState({
     full_name: '',
@@ -115,7 +116,6 @@ const Index = () => {
     setAvailableSlots(data.map(s => s.start_time.substring(0, 5)));
   }, []);
 
-  // Buscar horários disponíveis para agendamento da cliente
   const fetchBookingSlots = React.useCallback(async (date: Date) => {
     const formattedDate = format(date, 'yyyy-MM-dd');
     const { data, error } = await supabase
@@ -156,6 +156,35 @@ const Index = () => {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/login');
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('service-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('service-images')
+        .getPublicUrl(filePath);
+
+      setServiceFormData(prev => ({ ...prev, image_url: publicUrl }));
+      showSuccess("Foto enviada com sucesso!");
+    } catch (error: any) {
+      showError("Erro ao enviar foto: " + error.message);
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -248,32 +277,50 @@ const Index = () => {
     setBookingService(service);
     setIsBookingModalOpen(true);
     setIsDetailsModalOpen(false);
-    setSelectedSlotId(null);
+    setSelectedSlot(null);
   };
 
   const handleCreateAppointment = async () => {
-    if (!selectedSlotId || !bookingService || !user?.id) {
+    if (!selectedSlot || !bookingService || !user?.id) {
       showError("Selecione um horário para agendar");
       return;
     }
 
     setBookingLoading(true);
     try {
-      // 1. Criar o agendamento
+      // 1. Calcular quantos slots de 30min o serviço ocupa
+      const slotsToBlock = Math.ceil(bookingService.duration_minutes / 30);
+      
+      // 2. Encontrar os slots subsequentes para bloquear
+      const startTime = parse(selectedSlot.start_time, 'HH:mm:ss', new Date());
+      const slotsToUpdate = [selectedSlot.id];
+      
+      for (let i = 1; i < slotsToBlock; i++) {
+        const nextTime = format(addMinutes(startTime, i * 30), 'HH:mm:ss');
+        const nextSlot = availableBookingSlots.find(s => s.start_time === nextTime);
+        if (nextSlot) {
+          slotsToUpdate.push(nextSlot.id);
+        } else {
+          // Se não houver slot disponível para a duração total, avisar
+          throw new Error(`Este serviço precisa de ${bookingService.duration_minutes}min, mas não há horários livres seguidos suficientes a partir das ${selectedSlot.start_time.substring(0, 5)}.`);
+        }
+      }
+
+      // 3. Criar o agendamento (vinculado ao primeiro slot)
       const { error: appError } = await supabase.from('appointments').insert([{
         user_id: user.id,
         service_id: bookingService.id,
-        slot_id: selectedSlotId,
+        slot_id: selectedSlot.id,
         status: 'pending'
       }]);
 
       if (appError) throw appError;
 
-      // 2. Marcar o horário como indisponível
+      // 4. Marcar todos os slots necessários como indisponíveis
       const { error: slotError } = await supabase
         .from('available_slots')
         .update({ is_available: false })
-        .eq('id', selectedSlotId);
+        .in('id', slotsToUpdate);
 
       if (slotError) throw slotError;
 
@@ -335,7 +382,7 @@ const Index = () => {
   if (!session) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-slate-50 flex flex-col font-['Inter']">
       <svg width="0" height="0" className="absolute">
         <defs>
           <linearGradient id="purple-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -541,7 +588,7 @@ const Index = () => {
                         classNames={{
                           day_selected: "bg-pink-500 text-white hover:bg-pink-600 focus:bg-pink-500 rounded-xl",
                           day_today: "bg-slate-100 text-slate-900 rounded-xl",
-                          day: "h-9 w-9 p-0 font-bold text-[10px] rounded-xl hover:bg-pink-50 transition-colors",
+                          day: "h-9 w-9 p-0 font-bold text-[10px] rounded-xl hover:bg-pink-50 transition-colors text-slate-900",
                           head_cell: "text-slate-400 font-black text-[9px] uppercase tracking-widest w-9",
                           nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 text-pink-500",
                         }}
@@ -629,15 +676,33 @@ const Index = () => {
                 <Input required type="number" className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[10px]" value={serviceFormData.duration_minutes} onChange={(e) => setServiceFormData({ ...serviceFormData, duration_minutes: e.target.value })} />
               </div>
             </div>
+            
             <div className="space-y-1">
-              <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">URL da Foto do Resultado</Label>
-              <Input placeholder="https://..." className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 h-10 text-[10px]" value={serviceFormData.image_url} onChange={(e) => setServiceFormData({ ...serviceFormData, image_url: e.target.value })} />
+              <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">Foto do Resultado</Label>
+              <div className="flex items-center gap-3">
+                <div className="w-16 h-16 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200 flex items-center justify-center overflow-hidden">
+                  {serviceFormData.image_url ? (
+                    <img src={serviceFormData.image_url} className="w-full h-full object-cover" />
+                  ) : (
+                    <ImageIcon size={20} className="text-slate-300" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <Label htmlFor="image-upload" className="cursor-pointer inline-flex items-center gap-2 bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-xl text-[9px] font-black transition-colors">
+                    {uploadingImage ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+                    {serviceFormData.image_url ? 'TROCAR FOTO' : 'ENVIAR FOTO'}
+                  </Label>
+                  <input id="image-upload" type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
+                  <p className="text-[8px] text-slate-400 mt-1">JPG, PNG ou WEBP. Máx 5MB.</p>
+                </div>
+              </div>
             </div>
+
             <div className="space-y-1">
               <Label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest ml-2">Descrição Detalhada</Label>
               <Textarea className="bg-slate-50/50 border-slate-100 rounded-2xl px-4 text-[10px] min-h-[80px]" value={serviceFormData.description} onChange={(e) => setServiceFormData({ ...serviceFormData, description: e.target.value })} />
             </div>
-            <DialogFooter className="pt-2"><Button type="submit" disabled={editLoading} className="w-full bg-pink-600 hover:bg-pink-700 text-white font-black text-[10px] py-6 rounded-2xl shadow-md tracking-widest uppercase">{editLoading ? 'SALVANDO...' : 'SALVAR SERVIÇO'}</Button></DialogFooter>
+            <DialogFooter className="pt-2"><Button type="submit" disabled={editLoading || uploadingImage} className="w-full bg-pink-600 hover:bg-pink-700 text-white font-black text-[10px] py-6 rounded-2xl shadow-md tracking-widest uppercase">{editLoading ? 'SALVANDO...' : 'SALVAR SERVIÇO'}</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
@@ -718,7 +783,7 @@ const Index = () => {
                   classNames={{
                     day_selected: "bg-pink-500 text-white hover:bg-pink-600 focus:bg-pink-500 rounded-xl",
                     day_today: "bg-white text-pink-500 border border-pink-100 rounded-xl",
-                    day: "h-8 w-8 p-0 font-bold text-[9px] rounded-xl hover:bg-pink-50 transition-colors",
+                    day: "h-8 w-8 p-0 font-bold text-[10px] rounded-xl hover:bg-pink-50 transition-colors text-slate-900",
                     head_cell: "text-slate-400 font-black text-[8px] uppercase tracking-widest w-8",
                     nav_button: "h-6 w-6 bg-transparent p-0 opacity-50 hover:opacity-100 text-pink-500",
                   }}
@@ -733,9 +798,9 @@ const Index = () => {
                   availableBookingSlots.map((slot) => (
                     <button
                       key={slot.id}
-                      onClick={() => setSelectedSlotId(slot.id)}
+                      onClick={() => setSelectedSlot(slot)}
                       className={`h-9 rounded-xl text-[10px] font-black transition-all border-2 ${
-                        selectedSlotId === slot.id 
+                        selectedSlot?.id === slot.id 
                           ? 'bg-pink-500 border-pink-500 text-white shadow-md scale-105' 
                           : 'bg-white border-slate-100 text-slate-400 hover:border-pink-200'
                       }`}
@@ -753,7 +818,7 @@ const Index = () => {
 
             <Button 
               onClick={handleCreateAppointment}
-              disabled={bookingLoading || !selectedSlotId}
+              disabled={bookingLoading || !selectedSlot}
               className="w-full bg-pink-600 hover:bg-pink-700 text-white font-black text-[10px] py-6 rounded-2xl shadow-md tracking-widest uppercase mt-2"
             >
               {bookingLoading ? 'PROCESSANDO...' : 'CONFIRMAR AGENDAMENTO'}
