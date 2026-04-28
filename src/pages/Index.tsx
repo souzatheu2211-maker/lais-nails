@@ -4,7 +4,7 @@ import * as React from "react";
 import { useSession } from "@/components/SessionContextProvider";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Calendar as CalendarIcon, Clock, Sparkles, User, LogOut, Instagram, History, Settings, Plus, Pencil, Trash2, ChevronRight, ChevronLeft, Heart, X, Check, DollarSign, Save, Info, Image as ImageIcon, Upload, Loader2, Lock, AlertCircle, CalendarDays, Users, Phone, LayoutGrid, CheckCircle2, TrendingUp, TrendingDown, Wallet } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Sparkles, User, LogOut, Instagram, History, Settings, Plus, Pencil, Trash2, ChevronRight, ChevronLeft, Heart, X, Check, DollarSign, Save, Info, Image as ImageIcon, Upload, Loader2, Lock, AlertCircle, CalendarDays, Users, Phone, LayoutGrid, CheckCircle2, TrendingUp, TrendingDown, Wallet, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { showError, showSuccess } from "@/utils/toast";
@@ -53,6 +53,8 @@ const Index = () => {
   const [isAdminBookingModalOpen, setIsAdminBookingModalOpen] = React.useState(false);
   const [adminBookingClientId, setAdminBookingClientId] = React.useState("");
   const [adminBookingServiceId, setAdminBookingServiceId] = React.useState("");
+  const [isNewClient, setIsNewClient] = React.useState(false);
+  const [newClientData, setNewClientData] = React.useState({ full_name: '', phone: '' });
 
   // Estados de Detalhes do Serviço (Cliente)
   const [isServiceDetailsOpen, setIsServiceDetailsOpen] = React.useState(false);
@@ -352,14 +354,31 @@ const Index = () => {
   };
 
   const handleCreateAppointment = async () => {
-    const targetUserId = isAdmin ? adminBookingClientId : user?.id;
+    let targetUserId = isAdmin ? adminBookingClientId : user?.id;
     const targetServiceId = isAdmin ? adminBookingServiceId : bookingService?.id;
     const targetService = services.find(s => s.id === targetServiceId);
 
-    if (!selectedSlot || !targetServiceId || !targetUserId || !bookingDate || !targetService) return;
+    if (!selectedSlot || !targetServiceId || !bookingDate || !targetService) return;
     
     setBookingLoading(true);
     try {
+      // Se for ADM e for nova cliente, cria o perfil primeiro
+      if (isAdmin && isNewClient) {
+        if (!newClientData.full_name || !newClientData.phone) {
+          throw new Error("Preencha o nome e telefone da nova cliente.");
+        }
+        const { data: newProfile, error: profileError } = await supabase
+          .from('profiles')
+          .insert([{ full_name: newClientData.full_name, phone: newClientData.phone, role: 'client' }])
+          .select()
+          .single();
+        
+        if (profileError) throw profileError;
+        targetUserId = newProfile.id;
+      }
+
+      if (!targetUserId) throw new Error("Selecione uma cliente.");
+
       const formattedDate = format(bookingDate, 'yyyy-MM-dd');
       const startTimeStr = selectedSlot.start_time;
       const startTime = parse(startTimeStr, 'HH:mm:ss', new Date());
@@ -387,6 +406,7 @@ const Index = () => {
       setIsBookingModalOpen(false);
       setIsAdminBookingModalOpen(false);
       fetchAppointments();
+      if (isAdmin) fetchClients();
       if (!isAdmin) setActiveTab('history');
     } catch (error: any) {
       showError(error.message);
@@ -498,6 +518,8 @@ const Index = () => {
     setIsAdminBookingModalOpen(true);
     setAdminBookingClientId("");
     setAdminBookingServiceId("");
+    setIsNewClient(false);
+    setNewClientData({ full_name: '', phone: '' });
     setSelectedSlot(null);
     setBookingDate(new Date());
   };
@@ -1028,17 +1050,33 @@ const Index = () => {
           <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto scrollbar-hide">
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">1. Selecione a Cliente</Label>
-                <Select value={adminBookingClientId} onValueChange={setAdminBookingClientId}>
-                  <SelectTrigger className="bg-slate-50 border-slate-100 rounded-xl h-11 text-[11px] font-bold">
-                    <SelectValue placeholder="Escolha uma cliente..." />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl border-slate-100">
-                    {clients.map(c => (
-                      <SelectItem key={c.id} value={c.id} className="text-[11px] font-bold">{c.full_name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex justify-between items-center px-1">
+                  <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">1. Selecione a Cliente</Label>
+                  <button onClick={() => setIsNewClient(!isNewClient)} className="text-[9px] font-black text-pink-500 uppercase tracking-widest flex items-center gap-1 hover:text-pink-600 transition-colors">
+                    {isNewClient ? <Users size={10} /> : <UserPlus size={10} />}
+                    {isNewClient ? "CLIENTE CADASTRADA" : "NOVA CLIENTE"}
+                  </button>
+                </div>
+                
+                {isNewClient ? (
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                    <Input placeholder="Nome da Cliente" className="bg-white border-slate-100 rounded-lg h-10 text-[11px] font-bold" value={newClientData.full_name} onChange={(e) => setNewClientData({...newClientData, full_name: e.target.value})} />
+                    <InputMask mask="(99) 99999-9999" value={newClientData.phone} onChange={(e) => setNewClientData({...newClientData, phone: e.target.value})}>
+                      {(inputProps: any) => <Input placeholder="Telefone" className="bg-white border-slate-100 rounded-lg h-10 text-[11px] font-bold" {...inputProps} />}
+                    </InputMask>
+                  </motion.div>
+                ) : (
+                  <Select value={adminBookingClientId} onValueChange={setAdminBookingClientId}>
+                    <SelectTrigger className="bg-slate-50 border-slate-100 rounded-xl h-11 text-[11px] font-bold">
+                      <SelectValue placeholder="Escolha uma cliente..." />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-slate-100">
+                      {clients.map(c => (
+                        <SelectItem key={c.id} value={c.id} className="text-[11px] font-bold">{c.full_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
 
               <div className="space-y-1.5">
@@ -1084,7 +1122,7 @@ const Index = () => {
               </div>
             </div>
 
-            {selectedSlot && adminBookingClientId && adminBookingServiceId && (
+            {selectedSlot && (isNewClient || adminBookingClientId) && adminBookingServiceId && (
               <Button onClick={handleCreateAppointment} disabled={bookingLoading} className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black text-[11px] py-6 rounded-2xl shadow-lg tracking-widest uppercase active:scale-95 transition-all">
                 {bookingLoading ? "PROCESSANDO..." : "CONFIRMAR AGENDAMENTO"}
               </Button>
