@@ -51,9 +51,10 @@ const Index = () => {
   const [isServiceDetailsOpen, setIsServiceDetailsOpen] = React.useState(false);
   const [viewingService, setViewingService] = React.useState<any>(null);
 
-  // Estados de Detalhes da Cliente (Admin)
+  // Estados de Detalhes da Cliente/Atendimento (Admin)
   const [isClientModalOpen, setIsClientModalOpen] = React.useState(false);
   const [selectedClient, setSelectedClient] = React.useState<any>(null);
+  const [selectedAppointment, setSelectedAppointment] = React.useState<any>(null);
 
   // Estados de Galeria Otimizada
   const [galleryImages, setGalleryImages] = React.useState<string[]>([]);
@@ -246,6 +247,18 @@ const Index = () => {
     }
   };
 
+  const handleCancelAppointment = async (id: string) => {
+    if (!confirm("Deseja realmente cancelar este agendamento?")) return;
+    try {
+      const { error } = await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', id);
+      if (error) throw error;
+      showSuccess("Agendamento cancelado.");
+      fetchAppointments();
+    } catch (error: any) {
+      showError(error.message);
+    }
+  };
+
   const handleSaveService = async (e: React.FormEvent) => {
     e.preventDefault();
     setEditLoading(true);
@@ -336,8 +349,9 @@ const Index = () => {
     }
   };
 
-  const openClientDetails = (client: any) => {
+  const openClientDetails = (client: any, appointment: any = null) => {
     setSelectedClient(client);
+    setSelectedAppointment(appointment);
     setIsClientModalOpen(true);
   };
 
@@ -428,7 +442,7 @@ const Index = () => {
         </div>
       </header>
 
-      <main className="px-5 mt-4 flex-1 relative z-10">
+      <main className="px-5 mt-4 flex-1 relative z-10 pb-32">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <AnimatePresence mode="wait">
             {activeTab === "welcome" && (
@@ -541,9 +555,21 @@ const Index = () => {
                             {formatDateSafe(app.appointment_date)} • {app.start_time.substring(0, 5)}
                           </p>
                         </div>
-                        <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase ${app.status === 'completed' ? 'bg-green-50 text-green-500' : app.status === 'cancelled' ? 'bg-rose-50 text-rose-500' : 'bg-blue-50 text-blue-500'}`}>
-                          {app.status === 'scheduled' ? 'Agendado' : app.status === 'cancelled' ? 'Cancelado' : 'Atendida'}
-                        </span>
+                        <div className="flex flex-col items-end gap-2">
+                          <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase ${app.status === 'completed' ? 'bg-green-50 text-green-500' : app.status === 'cancelled' ? 'bg-rose-50 text-rose-500' : 'bg-blue-50 text-blue-500'}`}>
+                            {app.status === 'scheduled' ? 'Agendado' : app.status === 'cancelled' ? 'Cancelado' : 'Atendida'}
+                          </span>
+                          {app.status === 'scheduled' && (
+                            <Button 
+                              onClick={() => handleCancelAppointment(app.id)}
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-rose-400 hover:text-rose-600 h-6 px-2 text-[8px] font-black uppercase tracking-widest"
+                            >
+                              CANCELAR
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </Card>
                   ))}
@@ -593,14 +619,14 @@ const Index = () => {
                   {appointments.filter(a => a.status === 'scheduled').map((app) => (
                     <Card key={app.id} className="p-3 border-none shadow-sm rounded-2xl bg-white/80 hover:shadow-md transition-all group">
                       <div className="flex justify-between items-center">
-                        <div onClick={() => openClientDetails(app.profiles)} className="flex items-center gap-3 cursor-pointer">
+                        <div onClick={() => openClientDetails(app.profiles, app)} className="flex items-center gap-3 cursor-pointer flex-1">
                           <div className="w-8 h-8 bg-purple-50 rounded-xl flex items-center justify-center text-purple-400 font-black text-[10px] group-hover:bg-purple-100 transition-colors">
                             {app.profiles?.full_name?.charAt(0)}
                           </div>
                           <div className="flex flex-col">
-                            <h4 className="font-bold text-slate-700 text-[10px]">{app.profiles?.full_name}</h4>
+                            <h4 className="font-black text-black text-[10px]">{app.profiles?.full_name}</h4>
                             <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-0.5">
-                              <p className="text-[8px] text-slate-400 font-bold uppercase">
+                              <p className="text-[8px] text-black font-bold uppercase">
                                 {app.services?.name} • {app.start_time.substring(0, 5)}
                               </p>
                             </div>
@@ -614,7 +640,14 @@ const Index = () => {
                           >
                             <CheckCircle2 size={10} /> CONCLUIR
                           </Button>
-                          <ChevronRight size={14} className="text-slate-200" />
+                          <Button 
+                            onClick={() => handleCancelAppointment(app.id)}
+                            variant="ghost"
+                            size="icon" 
+                            className="text-rose-400 hover:text-rose-600 h-7 w-7"
+                          >
+                            <X size={14} />
+                          </Button>
                         </div>
                       </div>
                     </Card>
@@ -635,8 +668,11 @@ const Index = () => {
                           {client.full_name?.charAt(0)}
                         </div>
                         <div>
-                          <h4 className="font-bold text-slate-700 text-[10px]">{client.full_name}</h4>
-                          <p className="text-[8px] text-pink-400 font-bold uppercase">{client.instagram || '@sem_insta'}</p>
+                          <h4 className="font-black text-black text-[10px]">{client.full_name}</h4>
+                          <div className="flex gap-3 mt-0.5">
+                            <p className="text-[8px] text-black font-bold uppercase">{client.phone || 'Sem tel'}</p>
+                            <p className="text-[8px] text-black font-bold uppercase">{client.instagram || '@sem_insta'}</p>
+                          </div>
                         </div>
                       </div>
                       <Phone size={12} className="text-slate-300" />
@@ -822,12 +858,12 @@ const Index = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Detalhes da Cliente (Admin) */}
+      {/* Modal de Detalhes da Cliente/Atendimento (Admin) */}
       <Dialog open={isClientModalOpen} onOpenChange={setIsClientModalOpen}>
         <DialogContent className="sm:max-w-[350px] rounded-[2rem] border-none shadow-2xl p-6 bg-white">
           <DialogHeader>
             <DialogTitle className="text-sm font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
-              <User size={16} className="text-pink-500" /> Dados da Cliente
+              <User size={16} className="text-pink-500" /> {selectedAppointment ? 'Detalhes do Atendimento' : 'Dados da Cliente'}
             </DialogTitle>
           </DialogHeader>
           {selectedClient && (
@@ -836,39 +872,70 @@ const Index = () => {
                 <div className="w-16 h-16 bg-pink-50 rounded-2xl flex items-center justify-center text-pink-400 font-black text-xl shadow-inner">
                   {selectedClient.full_name?.charAt(0)}
                 </div>
-                <h3 className="font-black text-slate-800 text-sm">{selectedClient.full_name}</h3>
+                <h3 className="font-black text-black text-sm">{selectedClient.full_name}</h3>
               </div>
+
+              {selectedAppointment && (
+                <div className="p-4 bg-pink-50/50 rounded-2xl border border-pink-100 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Sparkles size={14} className="text-pink-500" />
+                    <p className="text-[10px] font-black text-black uppercase tracking-widest">{selectedAppointment.services?.name}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock size={14} className="text-pink-500" />
+                    <p className="text-[10px] font-black text-black uppercase tracking-widest">
+                      {formatDateSafe(selectedAppointment.appointment_date)} às {selectedAppointment.start_time.substring(0, 5)}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-3">
                 <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
                   <Phone size={14} className="text-pink-400" />
                   <div>
                     <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Telefone</p>
-                    <p className="text-[10px] font-black text-slate-600">{selectedClient.phone || 'Não informado'}</p>
+                    <p className="text-[10px] font-black text-black">{selectedClient.phone || 'Não informado'}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
                   <Instagram size={14} className="text-pink-400" />
                   <div>
                     <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Instagram</p>
-                    <p className="text-[10px] font-black text-pink-500">{selectedClient.instagram || '@sem_insta'}</p>
+                    <p className="text-[10px] font-black text-black">{selectedClient.instagram || '@sem_insta'}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
-                  <CalendarIcon size={14} className="text-pink-400" />
-                  <div>
-                    <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Nascimento</p>
-                    <p className="text-[10px] font-black text-slate-600">{selectedClient.birth_date || 'Não informado'}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
-                  <Info size={14} className="text-pink-400" />
-                  <div>
-                    <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">CPF</p>
-                    <p className="text-[10px] font-black text-slate-600">{selectedClient.cpf || 'Não informado'}</p>
-                  </div>
-                </div>
+                {!selectedAppointment && (
+                  <>
+                    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
+                      <CalendarIcon size={14} className="text-pink-400" />
+                      <div>
+                        <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Nascimento</p>
+                        <p className="text-[10px] font-black text-black">{selectedClient.birth_date || 'Não informado'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
+                      <Info size={14} className="text-pink-400" />
+                      <div>
+                        <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">CPF</p>
+                        <p className="text-[10px] font-black text-black">{selectedClient.cpf || 'Não informado'}</p>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
-              <Button onClick={() => setIsClientModalOpen(false)} className="w-full bg-slate-800 hover:bg-slate-900 text-white font-black text-[10px] py-6 rounded-2xl tracking-widest uppercase">FECHAR</Button>
+              
+              <div className="flex gap-2">
+                {selectedAppointment && (
+                  <Button 
+                    onClick={() => { handleCompleteAppointment(selectedAppointment.id); setIsClientModalOpen(false); }}
+                    className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-[10px] py-6 rounded-2xl tracking-widest uppercase"
+                  >
+                    CONCLUIR
+                  </Button>
+                )}
+                <Button onClick={() => setIsClientModalOpen(false)} className={`flex-1 ${selectedAppointment ? 'bg-slate-800' : 'w-full bg-slate-800'} hover:bg-slate-900 text-white font-black text-[10px] py-6 rounded-2xl tracking-widest uppercase`}>FECHAR</Button>
+              </div>
             </div>
           )}
         </DialogContent>
