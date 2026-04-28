@@ -914,6 +914,9 @@ const Index = () => {
                       <div>
                         <h4 className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Resumo</h4>
                         <p className="text-sm font-black text-slate-700">{bookingService?.name}</p>
+                        <p className="text-[10px] font-bold text-slate-400 mt-1">
+                          {bookingDate && format(bookingDate, "dd/MM/yyyy")} às {selectedSlot.start_time.substring(0, 5)}
+                        </p>
                       </div>
                       <p className="text-[10px] font-black text-pink-500 bg-pink-50 px-2 py-0.5 rounded-full">R$ {bookingService?.price}</p>
                     </div>
