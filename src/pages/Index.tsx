@@ -60,6 +60,7 @@ const Index = () => {
   // Estados de Faturamento (Admin)
   const [isExpenseModalOpen, setIsExpenseModalOpen] = React.useState(false);
   const [expenseFormData, setExpenseFormData] = React.useState({
+    id: '',
     description: '',
     amount: '',
     category: 'Material'
@@ -198,11 +199,9 @@ const Index = () => {
 
   const handleCompleteAppointment = async (app: any) => {
     try {
-      // 1. Atualiza status do agendamento
       const { error: appError } = await supabase.from('appointments').update({ status: 'completed' }).eq('id', app.id);
       if (appError) throw appError;
 
-      // 2. Registra no financeiro
       const { error: transError } = await supabase.from('financial_transactions').insert([{
         type: 'income',
         category: 'Serviço',
@@ -224,21 +223,52 @@ const Index = () => {
   const handleAddExpense = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const { error } = await supabase.from('financial_transactions').insert([{
+      const payload = {
         type: 'expense',
         category: expenseFormData.category,
         amount: parseFloat(expenseFormData.amount),
         description: expenseFormData.description,
         date: format(new Date(), 'yyyy-MM-dd')
-      }]);
-      if (error) throw error;
-      showSuccess("Despesa registrada!");
+      };
+
+      if (expenseFormData.id) {
+        const { error } = await supabase.from('financial_transactions').update(payload).eq('id', expenseFormData.id);
+        if (error) throw error;
+        showSuccess("Despesa atualizada!");
+      } else {
+        const { error } = await supabase.from('financial_transactions').insert([payload]);
+        if (error) throw error;
+        showSuccess("Despesa registrada!");
+      }
+
       setIsExpenseModalOpen(false);
-      setExpenseFormData({ description: '', amount: '', category: 'Material' });
+      setExpenseFormData({ id: '', description: '', amount: '', category: 'Material' });
       fetchTransactions();
     } catch (error: any) {
       showError(error.message);
     }
+  };
+
+  const handleDeleteTransaction = async (id: string) => {
+    if (!confirm("Deseja excluir este lançamento?")) return;
+    try {
+      const { error } = await supabase.from('financial_transactions').delete().eq('id', id);
+      if (error) throw error;
+      showSuccess("Lançamento excluído.");
+      fetchTransactions();
+    } catch (error: any) {
+      showError(error.message);
+    }
+  };
+
+  const openEditExpense = (t: any) => {
+    setExpenseFormData({
+      id: t.id,
+      description: t.description,
+      amount: t.amount.toString(),
+      category: t.category
+    });
+    setIsExpenseModalOpen(true);
   };
 
   const handleCancelAppointment = async (id: string) => {
@@ -422,7 +452,7 @@ const Index = () => {
               <motion.div key="admin-finance" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
                 <div className="flex justify-between items-center px-1">
                   <h3 className="text-[13px] font-black text-slate-400 uppercase tracking-[0.2em]">Faturamento</h3>
-                  <Button onClick={() => setIsExpenseModalOpen(true)} size="sm" className="bg-rose-500 hover:bg-rose-600 rounded-xl gap-1.5 font-black text-[9px] h-7 tracking-wider shadow-sm">
+                  <Button onClick={() => { setExpenseFormData({ id: '', description: '', amount: '', category: 'Material' }); setIsExpenseModalOpen(true); }} size="sm" className="bg-rose-500 hover:bg-rose-600 rounded-xl gap-1.5 font-black text-[9px] h-7 tracking-wider shadow-sm">
                     <ArrowDownCircle size={12} /> DESPESA
                   </Button>
                 </div>
@@ -446,7 +476,7 @@ const Index = () => {
                 {/* Lista de Transações */}
                 <div className="space-y-2">
                   {transactions.map((t) => (
-                    <Card key={t.id} className="p-3 border-none shadow-sm rounded-2xl bg-white/80 flex items-center justify-between">
+                    <Card key={t.id} className="p-3 border-none shadow-sm rounded-2xl bg-white/80 flex items-center justify-between group">
                       <div className="flex items-center gap-3">
                         <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${t.type === 'income' ? 'bg-emerald-50 text-emerald-500' : 'bg-rose-50 text-rose-500'}`}>
                           {t.type === 'income' ? <ArrowUpCircle size={16} /> : <ArrowDownCircle size={16} />}
@@ -456,9 +486,17 @@ const Index = () => {
                           <p className="text-[8px] text-slate-400 font-bold uppercase">{formatDateSafe(t.date)} • {t.category}</p>
                         </div>
                       </div>
-                      <p className={`text-[10px] font-black ${t.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                        {t.type === 'income' ? '+' : '-'} R$ {Number(t.amount).toFixed(2)}
-                      </p>
+                      <div className="flex items-center gap-3">
+                        <p className={`text-[10px] font-black ${t.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          {t.type === 'income' ? '+' : '-'} R$ {Number(t.amount).toFixed(2)}
+                        </p>
+                        {t.type === 'expense' && (
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button onClick={() => openEditExpense(t)} variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-pink-500"><Pencil size={12} /></Button>
+                            <Button onClick={() => handleDeleteTransaction(t.id)} variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-rose-500"><Trash2 size={12} /></Button>
+                          </div>
+                        )}
+                      </div>
                     </Card>
                   ))}
                 </div>
@@ -498,12 +536,12 @@ const Index = () => {
         </Tabs>
       </main>
 
-      {/* Modal de Despesa */}
+      {/* Modal de Despesa (Novo ou Editar) */}
       <Dialog open={isExpenseModalOpen} onOpenChange={setIsExpenseModalOpen}>
         <DialogContent className="sm:max-w-[350px] rounded-[2rem] border-none shadow-2xl p-6 bg-white">
           <DialogHeader>
             <DialogTitle className="text-sm font-black text-rose-600 uppercase tracking-widest flex items-center gap-2">
-              <ArrowDownCircle size={16} /> Registrar Despesa
+              <ArrowDownCircle size={16} /> {expenseFormData.id ? 'Editar Despesa' : 'Registrar Despesa'}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleAddExpense} className="space-y-4 mt-4">
@@ -526,7 +564,9 @@ const Index = () => {
                 </select>
               </div>
             </div>
-            <Button type="submit" className="w-full bg-rose-600 hover:bg-rose-700 text-white font-black text-[10px] py-6 rounded-2xl tracking-widest uppercase mt-2">SALVAR DESPESA</Button>
+            <Button type="submit" className="w-full bg-rose-600 hover:bg-rose-700 text-white font-black text-[10px] py-6 rounded-2xl tracking-widest uppercase mt-2">
+              {expenseFormData.id ? 'ATUALIZAR DESPESA' : 'SALVAR DESPESA'}
+            </Button>
           </form>
         </DialogContent>
       </Dialog>
