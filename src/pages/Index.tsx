@@ -382,7 +382,7 @@ const Index = () => {
                   <h2 className="text-2xl font-black text-slate-800 leading-tight tracking-tight">
                     Sua beleza merece <span className="text-pink-500">protagonismo.</span>
                   </h2>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em]">Onde a arte encontra o cuidado</p>
+                  <p className="text-[10px] font-bold text-slate-700 uppercase tracking-[0.3em]">Onde a arte encontra o cuidado</p>
                 </div>
 
                 {/* Carrossel de Galeria */}
