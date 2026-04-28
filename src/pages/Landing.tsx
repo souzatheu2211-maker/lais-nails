@@ -119,7 +119,7 @@ const Landing = () => {
             DESENVOLVIDO POR MATHEUS SOUZA
           </p>
           <div className="flex items-center gap-2">
-            <p className="text-[6px] font-bold text-slate-400">
+            <p className="text-[6px] font-bold text-black">
               © 2026 TODOS OS DIREITOS RESERVADOS
             </p>
             <a 
