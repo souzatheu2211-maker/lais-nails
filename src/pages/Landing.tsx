@@ -17,6 +17,7 @@ const Landing = () => {
   ];
 
   const instagramUrl = "https://www.instagram.com/lais.s.nails?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==";
+  const devInstagramUrl = "https://instagram.com/theu_souz2";
 
   return (
     <div className="min-h-screen bg-white overflow-hidden font-['Inter'] flex flex-col">
@@ -117,9 +118,20 @@ const Landing = () => {
           <p className="text-[7px] font-black text-black uppercase tracking-[0.3em]">
             DESENVOLVIDO POR MATHEUS SOUZA
           </p>
-          <p className="text-[6px] font-bold text-slate-400">
-            © 2026 TODOS OS DIREITOS RESERVADOS
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="text-[6px] font-bold text-slate-400">
+              © 2026 TODOS OS DIREITOS RESERVADOS
+            </p>
+            <a 
+              href={devInstagramUrl} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-black hover:text-pink-600 transition-colors"
+            >
+              <Instagram size={8} />
+              <span className="text-[8px] font-black">@theu_souz2</span>
+            </a>
+          </div>
         </div>
       </footer>
     </div>
