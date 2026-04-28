@@ -52,8 +52,19 @@ export const AuthForm = () => {
           email: formData.email,
           password: formData.password,
         });
-        if (error) throw error;
-        navigate('/');
+        
+        if (error) {
+          // Personalização das mensagens de erro conforme solicitado
+          if (error.message === 'Invalid login credentials') {
+            throw new Error("VIXE, VOCE DIGITOU ALGUMA COISA ERRADA AÍ, AMIGA.");
+          } else if (error.message.includes('User not found') || error.status === 400) {
+            // Nota: O Supabase costuma retornar 'Invalid login credentials' para ambos por segurança,
+            // mas deixamos a lógica preparada caso o erro de 'não encontrado' seja disparado.
+            throw new Error("PARECE QUE VOCÊ NAO TEM CADASTRO, GATA. VAMOS FAZER UM?");
+          }
+          throw error;
+        }
+        navigate('/app');
       }
     } catch (error: any) {
       showError(error.message);
