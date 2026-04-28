@@ -44,13 +44,8 @@ const Index = () => {
   const [bookingService, setBookingService] = React.useState<any>(null);
   const [bookingDate, setBookingDate] = React.useState<Date | undefined>(new Date());
   const [allBookingSlots, setAllBookingSlots] = React.useState<any[]>([]);
-  const [dayAppointments, setDayAppointments] = React.useState<any[]>([]);
   const [selectedSlot, setSelectedSlot] = React.useState<any>(null);
   const [bookingLoading, setBookingLoading] = React.useState(false);
-
-  // Estados de Detalhes do Serviço (Cliente)
-  const [isServiceDetailsOpen, setIsServiceDetailsOpen] = React.useState(false);
-  const [viewingService, setViewingService] = React.useState<any>(null);
 
   // Estados de Detalhes da Cliente/Atendimento (Admin)
   const [isClientModalOpen, setIsClientModalOpen] = React.useState(false);
@@ -66,14 +61,7 @@ const Index = () => {
     category: 'Material'
   });
 
-  // Estados de Galeria Otimizada
-  const [galleryImages, setGalleryImages] = React.useState<string[]>([]);
-  const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
-  const [imageLoading, setImageLoading] = React.useState(true);
-
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
-  const [isServiceModalOpen, setIsServiceModalOpen] = React.useState(false);
-  const [selectedService, setSelectedService] = React.useState<any>(null);
   const [editLoading, setEditLoading] = React.useState(false);
 
   const [editFormData, setEditFormData] = React.useState({
@@ -82,15 +70,6 @@ const Index = () => {
     cpf: '',
     birth_date: '',
     instagram: ''
-  });
-
-  const [serviceFormData, setServiceFormData] = React.useState({
-    id: '',
-    name: '',
-    price: '',
-    duration_minutes: '',
-    description: '',
-    image_url: ''
   });
 
   const isAdmin = user?.email === 'lais@nails.com';
@@ -149,28 +128,11 @@ const Index = () => {
     setTransactions(data || []);
   }, [isAdmin]);
 
-  // Galeria com Cache Local (SessionStorage)
-  const fetchGallery = React.useCallback(async () => {
-    const cachedGallery = sessionStorage.getItem('lais_nails_gallery');
-    if (cachedGallery) {
-      setGalleryImages(JSON.parse(cachedGallery));
-      return;
-    }
-
-    const { data } = await supabase.from('services').select('image_url').not('image_url', 'is', null);
-    if (data) {
-      const urls = data.map(d => d.image_url);
-      setGalleryImages(urls);
-      sessionStorage.setItem('lais_nails_gallery', JSON.stringify(urls));
-    }
-  }, []);
-
   React.useEffect(() => {
     if (session) {
       fetchProfile();
       fetchServices();
       fetchAppointments();
-      fetchGallery();
       if (isAdmin) {
         fetchClients();
         fetchTransactions();
@@ -178,13 +140,29 @@ const Index = () => {
     } else {
       navigate('/');
     }
-  }, [session, fetchProfile, fetchServices, fetchAppointments, fetchClients, fetchGallery, fetchTransactions, isAdmin, navigate]);
+  }, [session, fetchProfile, fetchServices, fetchAppointments, fetchClients, fetchTransactions, isAdmin, navigate]);
 
   React.useEffect(() => {
     if (isAdmin && selectedDate) {
       fetchSlotsForDate(selectedDate);
     }
   }, [isAdmin, selectedDate]);
+
+  // Busca horários disponíveis para agendamento da cliente
+  React.useEffect(() => {
+    if (!isAdmin && bookingDate && isBookingModalOpen) {
+      const fetchBookingSlots = async () => {
+        const formattedDate = format(bookingDate, 'yyyy-MM-dd');
+        const { data } = await supabase.from('available_slots')
+          .select('*')
+          .eq('date', formattedDate)
+          .eq('is_available', true)
+          .order('start_time');
+        setAllBookingSlots(data || []);
+      };
+      fetchBookingSlots();
+    }
+  }, [isAdmin, bookingDate, isBookingModalOpen]);
 
   const fetchSlotsForDate = async (date: Date) => {
     const formattedDate = format(date, 'yyyy-MM-dd');
@@ -195,6 +173,58 @@ const Index = () => {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/');
+  };
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEditLoading(true);
+    try {
+      const { error } = await supabase.from('profiles').update(editFormData).eq('id', user?.id);
+      if (error) throw error;
+      showSuccess("Perfil atualizado com sucesso!");
+      fetchProfile();
+      setIsEditModalOpen(false);
+    } catch (error: any) {
+      showError(error.message);
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleCreateAppointment = async () => {
+    if (!selectedSlot || !bookingService) return;
+    setBookingLoading(true);
+    try {
+      const startTime = selectedSlot.start_time;
+      const duration = bookingService.duration_minutes;
+      const startDateTime = parse(startTime, 'HH:mm:ss', new Date());
+      const endDateTime = addMinutes(startDateTime, duration);
+      const endTime = format(endDateTime, 'HH:mm:ss');
+
+      const { error } = await supabase.from('appointments').insert([{
+        user_id: user?.id,
+        service_id: bookingService.id,
+        slot_id: selectedSlot.id,
+        appointment_date: format(bookingDate!, 'yyyy-MM-dd'),
+        start_time: startTime,
+        end_time: endTime,
+        status: 'scheduled'
+      }]);
+
+      if (error) throw error;
+
+      // Marcar slot como indisponível
+      await supabase.from('available_slots').update({ is_available: false }).eq('id', selectedSlot.id);
+
+      showSuccess("Agendamento realizado com sucesso!");
+      setIsBookingModalOpen(false);
+      fetchAppointments();
+      setActiveTab('history');
+    } catch (error: any) {
+      showError(error.message);
+    } finally {
+      setBookingLoading(false);
+    }
   };
 
   const handleCompleteAppointment = async (app: any) => {
@@ -387,7 +417,112 @@ const Index = () => {
               </motion.div>
             )}
 
-            {/* ABA DE PRÓXIMOS ATENDIMENTOS (ADMIN) */}
+            {/* --- ABAS DA CLIENTE --- */}
+            {!isAdmin && activeTab === "services" && (
+              <motion.div key="client-services" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+                <h3 className="text-[13px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Nossos Serviços</h3>
+                <div className="grid grid-cols-1 gap-4">
+                  {services.map((service) => (
+                    <Card key={service.id} className="overflow-hidden border-none shadow-sm rounded-[2rem] bg-white/80 group">
+                      <div className="relative h-40">
+                        <img src={service.image_url || "/placeholder.svg"} alt={service.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                        <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full shadow-sm">
+                          <p className="text-[10px] font-black text-pink-500">R$ {Number(service.price).toFixed(2)}</p>
+                        </div>
+                      </div>
+                      <div className="p-5 space-y-3">
+                        <div>
+                          <h4 className="font-black text-slate-800 text-sm">{service.name}</h4>
+                          <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1 flex items-center gap-1">
+                            <Clock size={10} /> {service.duration_minutes} minutos
+                          </p>
+                        </div>
+                        <p className="text-[10px] text-slate-600 leading-relaxed line-clamp-2">{service.description}</p>
+                        <Button onClick={() => openBookingModal(service)} className="w-full bg-pink-500 hover:bg-pink-600 text-white font-black text-[9px] py-5 rounded-xl tracking-widest uppercase shadow-md shadow-pink-100">
+                          AGENDAR AGORA
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
+            {!isAdmin && activeTab === "history" && (
+              <motion.div key="client-history" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+                <h3 className="text-[13px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Meus Agendamentos</h3>
+                <div className="space-y-3">
+                  {appointments.length === 0 ? (
+                    <div className="text-center py-10 space-y-3">
+                      <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-300">
+                        <CalendarDays size={24} />
+                      </div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nenhum agendamento encontrado</p>
+                    </div>
+                  ) : (
+                    appointments.map((app) => (
+                      <Card key={app.id} className="p-4 border-none shadow-sm rounded-2xl bg-white/80 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${app.status === 'completed' ? 'bg-emerald-50 text-emerald-500' : app.status === 'cancelled' ? 'bg-rose-50 text-rose-500' : 'bg-pink-50 text-pink-500'}`}>
+                            <Sparkles size={18} />
+                          </div>
+                          <div>
+                            <h4 className="font-black text-slate-800 text-[11px]">{app.services?.name}</h4>
+                            <p className="text-[9px] text-slate-400 font-bold uppercase mt-0.5">
+                              {formatDateSafe(app.appointment_date)} às {app.start_time.substring(0, 5)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className={`px-2 py-1 rounded-lg text-[7px] font-black uppercase tracking-widest ${app.status === 'completed' ? 'bg-emerald-100 text-emerald-600' : app.status === 'cancelled' ? 'bg-rose-100 text-rose-600' : 'bg-blue-100 text-blue-600'}`}>
+                          {app.status === 'completed' ? 'Concluído' : app.status === 'cancelled' ? 'Cancelado' : 'Agendado'}
+                        </div>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </motion.div>
+            )}
+
+            {!isAdmin && activeTab === "profile" && (
+              <motion.div key="client-profile" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+                <div className="flex flex-col items-center text-center space-y-3">
+                  <div className="w-20 h-20 bg-pink-50 rounded-[2rem] flex items-center justify-center text-pink-400 font-black text-2xl shadow-inner border-4 border-white">
+                    {profile?.full_name?.charAt(0) || '?'}
+                  </div>
+                  <div>
+                    <h3 className="font-black text-slate-800 text-lg">{profile?.full_name || 'Sua Conta'}</h3>
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em]">{user?.email}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3">
+                  <Card className="p-4 border-none shadow-sm rounded-2xl bg-white/80 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Phone size={16} className="text-pink-400" />
+                      <div>
+                        <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Telefone</p>
+                        <p className="text-[10px] font-black text-slate-700">{profile?.phone || 'Não informado'}</p>
+                      </div>
+                    </div>
+                  </Card>
+                  <Card className="p-4 border-none shadow-sm rounded-2xl bg-white/80 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Instagram size={16} className="text-pink-400" />
+                      <div>
+                        <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Instagram</p>
+                        <p className="text-[10px] font-black text-slate-700">{profile?.instagram || '@sem_insta'}</p>
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+
+                <Button onClick={() => setIsEditModalOpen(true)} className="w-full bg-slate-800 hover:bg-slate-900 text-white font-black text-[10px] py-6 rounded-2xl tracking-widest uppercase shadow-lg">
+                  EDITAR MEUS DADOS
+                </Button>
+              </motion.div>
+            )}
+
+            {/* --- ABAS DA ADM --- */}
             {isAdmin && activeTab === "home" && (
               <motion.div key="admin-home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
                 <h3 className="text-[13px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Próximos Atendimentos</h3>
@@ -421,7 +556,6 @@ const Index = () => {
               </motion.div>
             )}
 
-            {/* ABA DE CLIENTES (ADMIN) */}
             {isAdmin && activeTab === "clients" && (
               <motion.div key="admin-clients" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
                 <h3 className="text-[13px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Minhas Clientes</h3>
@@ -447,7 +581,6 @@ const Index = () => {
               </motion.div>
             )}
 
-            {/* ABA DE FATURAMENTO (ADMIN) */}
             {isAdmin && activeTab === "finance" && (
               <motion.div key="admin-finance" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
                 <div className="flex justify-between items-center px-1">
@@ -457,7 +590,6 @@ const Index = () => {
                   </Button>
                 </div>
 
-                {/* Cards de Resumo */}
                 <div className="grid grid-cols-3 gap-2">
                   <Card className="p-3 border-none bg-emerald-50 rounded-2xl text-center">
                     <p className="text-[7px] font-black text-emerald-600 uppercase tracking-widest mb-1">Entradas</p>
@@ -473,7 +605,6 @@ const Index = () => {
                   </Card>
                 </div>
 
-                {/* Lista de Transações */}
                 <div className="space-y-2">
                   {transactions.map((t) => (
                     <Card key={t.id} className="p-3 border-none shadow-sm rounded-2xl bg-white/80 flex items-center justify-between group">
@@ -503,7 +634,6 @@ const Index = () => {
               </motion.div>
             )}
 
-            {/* ABA DE AGENDA (ADMIN) */}
             {isAdmin && activeTab === "calendar" && (
               <motion.div key="admin-calendar" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
                 <h3 className="text-[13px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Gerenciar Agenda</h3>
@@ -536,7 +666,72 @@ const Index = () => {
         </Tabs>
       </main>
 
-      {/* Modal de Despesa (Novo ou Editar) */}
+      {/* Modal de Agendamento (Cliente) */}
+      <Dialog open={isBookingModalOpen} onOpenChange={setIsBookingModalOpen}>
+        <DialogContent className="sm:max-w-[350px] rounded-[2rem] border-none shadow-2xl p-6 bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-black text-pink-500 uppercase tracking-widest flex items-center gap-2">
+              <CalendarIcon size={16} /> Agendar {bookingService?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div className="p-2 bg-slate-50 rounded-2xl">
+              <Calendar mode="single" selected={bookingDate} onSelect={setBookingDate} locale={ptBR} className="rounded-xl border-none" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-2">Horários Disponíveis</Label>
+              <div className="grid grid-cols-3 gap-2 max-h-32 overflow-y-auto p-1">
+                {allBookingSlots.length === 0 ? (
+                  <p className="col-span-3 text-[9px] text-center text-slate-400 py-4">Nenhum horário disponível para este dia.</p>
+                ) : (
+                  allBookingSlots.map((slot) => (
+                    <button key={slot.id} onClick={() => setSelectedSlot(slot)} className={`h-8 rounded-lg text-[10px] font-black transition-all border ${selectedSlot?.id === slot.id ? 'bg-pink-500 border-pink-500 text-white shadow-md' : 'bg-white border-slate-100 text-slate-600 hover:border-pink-200'}`}>
+                      {slot.start_time.substring(0, 5)}
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+            <Button onClick={handleCreateAppointment} disabled={!selectedSlot || bookingLoading} className="w-full bg-pink-600 hover:bg-pink-700 text-white font-black text-[10px] py-6 rounded-2xl tracking-widest uppercase shadow-lg">
+              {bookingLoading ? 'PROCESSANDO...' : 'CONFIRMAR AGENDAMENTO'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Edição de Perfil (Cliente) */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="sm:max-w-[350px] rounded-[2rem] border-none shadow-2xl p-6 bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
+              <User size={16} className="text-pink-500" /> Editar Meus Dados
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleUpdateProfile} className="space-y-4 mt-4">
+            <div className="space-y-1">
+              <Label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-2">Nome Completo</Label>
+              <Input required className="bg-slate-50 border-slate-100 rounded-xl h-10 text-[10px]" value={editFormData.full_name} onChange={(e) => setEditFormData({ ...editFormData, full_name: e.target.value })} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-2">Telefone</Label>
+                <InputMask mask="(99) 99999-9999" value={editFormData.phone} onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}>
+                  {(inputProps: any) => <Input required className="bg-slate-50 border-slate-100 rounded-xl h-10 text-[10px]" {...inputProps} />}
+                </InputMask>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-2">Instagram</Label>
+                <Input className="bg-slate-50 border-slate-100 rounded-xl h-10 text-[10px]" value={editFormData.instagram} onChange={(e) => setEditFormData({ ...editFormData, instagram: e.target.value })} />
+              </div>
+            </div>
+            <Button type="submit" disabled={editLoading} className="w-full bg-pink-600 hover:bg-pink-700 text-white font-black text-[10px] py-6 rounded-2xl tracking-widest uppercase shadow-lg">
+              {editLoading ? 'SALVANDO...' : 'SALVAR ALTERAÇÕES'}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Despesa (ADM) */}
       <Dialog open={isExpenseModalOpen} onOpenChange={setIsExpenseModalOpen}>
         <DialogContent className="sm:max-w-[350px] rounded-[2rem] border-none shadow-2xl p-6 bg-white">
           <DialogHeader>
@@ -571,7 +766,7 @@ const Index = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Detalhes da Cliente/Atendimento (Admin) */}
+      {/* Modal de Detalhes da Cliente/Atendimento (ADM) */}
       <Dialog open={isClientModalOpen} onOpenChange={setIsClientModalOpen}>
         <DialogContent className="sm:max-w-[350px] rounded-[2rem] border-none shadow-2xl p-6 bg-white">
           <DialogHeader>
@@ -618,24 +813,6 @@ const Index = () => {
                     <p className="text-[10px] font-black text-black">{selectedClient.instagram || '@sem_insta'}</p>
                   </div>
                 </div>
-                {!selectedAppointment && (
-                  <>
-                    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
-                      <CalendarIcon size={14} className="text-pink-400" />
-                      <div>
-                        <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Nascimento</p>
-                        <p className="text-[10px] font-black text-black">{selectedClient.birth_date || 'Não informado'}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
-                      <Info size={14} className="text-pink-400" />
-                      <div>
-                        <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">CPF</p>
-                        <p className="text-[10px] font-black text-black">{selectedClient.cpf || 'Não informado'}</p>
-                      </div>
-                    </div>
-                  </>
-                )}
               </div>
               
               <div className="flex gap-2">
