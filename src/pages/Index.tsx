@@ -675,6 +675,7 @@ const Index = () => {
                           <Button onClick={() => openFinancialModal(item)} variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-pink-500"><Pencil size={12} /></Button>
                           <Button onClick={() => handleDeleteFinancial(item.id)} variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-rose-500"><Trash2 size={12} /></Button>
                         </div>
+                      </div>
                     </Card>
                   ))}
                 </div>
