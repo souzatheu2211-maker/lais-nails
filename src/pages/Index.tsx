@@ -108,13 +108,20 @@ const Index = () => {
 
   const fetchAppointments = React.useCallback(async () => {
     if (!user?.id) return;
+    // Ajuste na consulta para garantir que o join com profiles funcione mesmo sem FK explícita se o Supabase permitir, 
+    // ou usando a relação correta.
     let query = supabase.from('appointments').select(`
       *,
       profiles:user_id (full_name, phone, instagram, birth_date, cpf),
       services:service_id (name, price, duration_minutes)
     `);
+    
     if (!isAdmin) query = query.eq('user_id', user.id);
-    const { data } = await query.order('created_at', { ascending: false });
+    const { data, error } = await query.order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error("Erro ao buscar agendamentos:", error);
+    }
     setAppointments(data || []);
   }, [user?.id, isAdmin]);
 
@@ -621,10 +628,10 @@ const Index = () => {
                       <div className="flex justify-between items-center">
                         <div onClick={() => openClientDetails(app.profiles, app)} className="flex items-center gap-3 cursor-pointer flex-1">
                           <div className="w-8 h-8 bg-purple-50 rounded-xl flex items-center justify-center text-purple-400 font-black text-[10px] group-hover:bg-purple-100 transition-colors">
-                            {app.profiles?.full_name?.charAt(0)}
+                            {app.profiles?.full_name?.charAt(0) || '?'}
                           </div>
                           <div className="flex flex-col">
-                            <h4 className="font-black text-black text-[10px]">{app.profiles?.full_name}</h4>
+                            <h4 className="font-black text-black text-[10px]">{app.profiles?.full_name || 'Cliente sem nome'}</h4>
                             <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-0.5">
                               <p className="text-[8px] text-black font-bold uppercase">
                                 {app.services?.name} • {app.start_time.substring(0, 5)}
@@ -665,10 +672,10 @@ const Index = () => {
                     <Card key={client.id} onClick={() => openClientDetails(client)} className="p-3 border-none shadow-sm rounded-2xl bg-white/80 hover:shadow-md transition-all cursor-pointer flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-pink-50 rounded-xl flex items-center justify-center text-pink-400 font-black text-[10px]">
-                          {client.full_name?.charAt(0)}
+                          {client.full_name?.charAt(0) || '?'}
                         </div>
                         <div>
-                          <h4 className="font-black text-black text-[10px]">{client.full_name}</h4>
+                          <h4 className="font-black text-black text-[10px]">{client.full_name || 'Sem nome'}</h4>
                           <div className="flex gap-3 mt-0.5">
                             <p className="text-[8px] text-black font-bold uppercase">{client.phone || 'Sem tel'}</p>
                             <p className="text-[8px] text-black font-bold uppercase">{client.instagram || '@sem_insta'}</p>
@@ -870,9 +877,9 @@ const Index = () => {
             <div className="space-y-5 mt-4">
               <div className="flex flex-col items-center text-center space-y-2">
                 <div className="w-16 h-16 bg-pink-50 rounded-2xl flex items-center justify-center text-pink-400 font-black text-xl shadow-inner">
-                  {selectedClient.full_name?.charAt(0)}
+                  {selectedClient.full_name?.charAt(0) || '?'}
                 </div>
-                <h3 className="font-black text-black text-sm">{selectedClient.full_name}</h3>
+                <h3 className="font-black text-black text-sm">{selectedClient.full_name || 'Sem nome'}</h3>
               </div>
 
               {selectedAppointment && (
