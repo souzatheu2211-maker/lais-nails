@@ -19,6 +19,7 @@ import { format, addMinutes, parse, isSameDay, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import InputMask from 'react-input-mask';
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // Importando a imagem de fundo para garantir que o Vite a processe corretamente
 import laisBg from "@/assets/lais-bg.jpeg";
@@ -47,6 +48,11 @@ const Index = () => {
   const [dayAppointments, setDayAppointments] = React.useState<any[]>([]);
   const [selectedSlot, setSelectedSlot] = React.useState<any>(null);
   const [bookingLoading, setBookingLoading] = React.useState(false);
+
+  // Estados de Agendamento (Admin para Cliente)
+  const [isAdminBookingModalOpen, setIsAdminBookingModalOpen] = React.useState(false);
+  const [adminBookingClientId, setAdminBookingClientId] = React.useState("");
+  const [adminBookingServiceId, setAdminBookingServiceId] = React.useState("");
 
   // Estados de Detalhes do Serviço (Cliente)
   const [isServiceDetailsOpen, setIsServiceDetailsOpen] = React.useState(false);
@@ -190,10 +196,10 @@ const Index = () => {
   }, [isAdmin, selectedDate, fetchSlotsForDate]);
 
   React.useEffect(() => {
-    if (!isAdmin && bookingDate && isBookingModalOpen) {
+    if (bookingDate && (isBookingModalOpen || isAdminBookingModalOpen)) {
       fetchBookingSlots(bookingDate);
     }
-  }, [isAdmin, bookingDate, isBookingModalOpen, fetchBookingSlots]);
+  }, [bookingDate, isBookingModalOpen, isAdminBookingModalOpen, fetchBookingSlots]);
 
   // Auto-play galeria
   React.useEffect(() => {
@@ -346,13 +352,18 @@ const Index = () => {
   };
 
   const handleCreateAppointment = async () => {
-    if (!selectedSlot || !bookingService || !user?.id || !bookingDate) return;
+    const targetUserId = isAdmin ? adminBookingClientId : user?.id;
+    const targetServiceId = isAdmin ? adminBookingServiceId : bookingService?.id;
+    const targetService = services.find(s => s.id === targetServiceId);
+
+    if (!selectedSlot || !targetServiceId || !targetUserId || !bookingDate || !targetService) return;
+    
     setBookingLoading(true);
     try {
       const formattedDate = format(bookingDate, 'yyyy-MM-dd');
       const startTimeStr = selectedSlot.start_time;
       const startTime = parse(startTimeStr, 'HH:mm:ss', new Date());
-      const endTimeStr = format(addMinutes(startTime, bookingService.duration_minutes), 'HH:mm:ss');
+      const endTimeStr = format(addMinutes(startTime, targetService.duration_minutes), 'HH:mm:ss');
 
       const { data: hasConflict } = await supabase.rpc('check_appointment_conflict', {
         p_date: formattedDate,
@@ -363,8 +374,8 @@ const Index = () => {
       if (hasConflict) throw new Error("Horário indisponível.");
 
       await supabase.from('appointments').insert([{
-        user_id: user.id,
-        service_id: bookingService.id,
+        user_id: targetUserId,
+        service_id: targetServiceId,
         slot_id: selectedSlot.id,
         appointment_date: formattedDate,
         start_time: startTimeStr,
@@ -374,8 +385,9 @@ const Index = () => {
 
       showSuccess("Agendado com sucesso!");
       setIsBookingModalOpen(false);
+      setIsAdminBookingModalOpen(false);
       fetchAppointments();
-      setActiveTab('history');
+      if (!isAdmin) setActiveTab('history');
     } catch (error: any) {
       showError(error.message);
     } finally {
@@ -480,6 +492,14 @@ const Index = () => {
     setBookingService(service);
     setIsBookingModalOpen(true);
     setSelectedSlot(null);
+  };
+
+  const openAdminBookingModal = () => {
+    setIsAdminBookingModalOpen(true);
+    setAdminBookingClientId("");
+    setAdminBookingServiceId("");
+    setSelectedSlot(null);
+    setBookingDate(new Date());
   };
 
   const toggleSlot = (time: string) => {
@@ -635,7 +655,12 @@ const Index = () => {
             {/* ABA DE PRÓXIMOS ATENDIMENTOS (ADMIN) */}
             {isAdmin && activeTab === "home" && (
               <motion.div key="admin-home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-                <h3 className="text-[13px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Próximos Atendimentos</h3>
+                <div className="flex justify-between items-center px-1">
+                  <h3 className="text-[13px] font-black text-slate-400 uppercase tracking-[0.2em]">Próximos Atendimentos</h3>
+                  <Button onClick={openAdminBookingModal} size="sm" className="bg-pink-500 hover:bg-pink-600 rounded-xl gap-1.5 font-black text-[9px] h-7 tracking-wider shadow-sm">
+                    <Plus size={12} /> NOVO AGENDAMENTO
+                  </Button>
+                </div>
                 <div className="space-y-2.5">
                   {appointments.filter(a => a.status === 'scheduled').map((app) => (
                     <Card key={app.id} className="p-3 border-none shadow-sm rounded-2xl bg-white/80 hover:shadow-md transition-all group">
@@ -943,7 +968,7 @@ const Index = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Agendamento */}
+      {/* Modal de Agendamento (Cliente) */}
       <Dialog open={isBookingModalOpen} onOpenChange={setIsBookingModalOpen}>
         <DialogContent className="sm:max-w-[400px] rounded-[2.5rem] border-none shadow-2xl p-0 bg-white overflow-hidden">
           <div className="bg-gradient-to-r from-pink-500 to-purple-600 p-6 text-white relative">
@@ -988,6 +1013,81 @@ const Index = () => {
                   </div>
                 </Card>
               </motion.div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Agendamento (Admin para Cliente) */}
+      <Dialog open={isAdminBookingModalOpen} onOpenChange={setIsAdminBookingModalOpen}>
+        <DialogContent className="sm:max-w-[400px] rounded-[2.5rem] border-none shadow-2xl p-0 bg-white overflow-hidden">
+          <div className="bg-slate-900 p-6 text-white relative">
+            <div className="absolute top-4 right-4"><Button onClick={() => setIsAdminBookingModalOpen(false)} variant="ghost" size="icon" className="text-white/80 hover:text-white hover:bg-white/20 rounded-full h-8 w-8"><X size={18} /></Button></div>
+            <div className="flex flex-col items-center text-center space-y-1"><div className="bg-white/10 backdrop-blur-md p-2 rounded-xl mb-1"><Plus size={20} className="text-white" /></div><h2 className="text-lg font-black tracking-tight uppercase">Novo Agendamento</h2><p className="text-[10px] font-medium text-white/60 uppercase tracking-widest">Agende para uma cliente</p></div>
+          </div>
+          <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto scrollbar-hide">
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">1. Selecione a Cliente</Label>
+                <Select value={adminBookingClientId} onValueChange={setAdminBookingClientId}>
+                  <SelectTrigger className="bg-slate-50 border-slate-100 rounded-xl h-11 text-[11px] font-bold">
+                    <SelectValue placeholder="Escolha uma cliente..." />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-slate-100">
+                    {clients.map(c => (
+                      <SelectItem key={c.id} value={c.id} className="text-[11px] font-bold">{c.full_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">2. Selecione o Serviço</Label>
+                <Select value={adminBookingServiceId} onValueChange={setAdminBookingServiceId}>
+                  <SelectTrigger className="bg-slate-50 border-slate-100 rounded-xl h-11 text-[11px] font-bold">
+                    <SelectValue placeholder="Escolha o serviço..." />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-slate-100">
+                    {services.map(s => (
+                      <SelectItem key={s.id} value={s.id} className="text-[11px] font-bold">{s.name} - R$ {s.price}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">3. Escolha o dia</Label>
+                <Card className="p-2 border-none shadow-sm rounded-[2rem] bg-slate-50 border border-slate-100">
+                  <Calendar mode="single" selected={bookingDate} onSelect={setBookingDate} locale={ptBR} className="rounded-2xl border-none mx-auto" />
+                </Card>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">4. Escolha o horário disponível</Label>
+                <div className="grid grid-cols-4 gap-2">
+                  {timeSlots.map((time) => {
+                    const slotInDb = allBookingSlots.find(s => s.start_time.substring(0, 5) === time);
+                    const isBooked = dayAppointments.some(app => {
+                      const start = app.start_time.substring(0, 5);
+                      const end = app.end_time.substring(0, 5);
+                      return time >= start && time < end;
+                    });
+                    const isAvailable = slotInDb?.is_available === true && !isBooked;
+                    const isSelected = selectedSlot?.id === slotInDb?.id && slotInDb?.id !== undefined;
+                    return (
+                      <button key={time} disabled={!isAvailable} onClick={() => isAvailable && setSelectedSlot(slotInDb)} className={`h-9 rounded-xl text-[10px] font-black transition-all border-2 flex items-center justify-center ${!isAvailable ? 'bg-slate-100 border-slate-200 text-slate-300 cursor-not-allowed' : isSelected ? 'bg-pink-500 border-pink-600 text-white shadow-md' : 'bg-white border-slate-200 text-slate-600 hover:border-pink-200'}`}>
+                        {time}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {selectedSlot && adminBookingClientId && adminBookingServiceId && (
+              <Button onClick={handleCreateAppointment} disabled={bookingLoading} className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black text-[11px] py-6 rounded-2xl shadow-lg tracking-widest uppercase active:scale-95 transition-all">
+                {bookingLoading ? "PROCESSANDO..." : "CONFIRMAR AGENDAMENTO"}
+              </Button>
             )}
           </div>
         </DialogContent>
