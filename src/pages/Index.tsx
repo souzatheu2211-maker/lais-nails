@@ -201,9 +201,44 @@ const Index = () => {
     }
   }, [isAdmin, bookingDate, isBookingModalOpen, fetchBookingSlots]);
 
+  // Auto-play galeria
+  React.useEffect(() => {
+    if (activeTab === "welcome" && galleryImages.length > 1) {
+      const timer = setInterval(() => {
+        setCurrentImageIndex(prev => (prev + 1) % galleryImages.length);
+        setImageLoading(true);
+      }, 6000);
+      return () => clearInterval(timer);
+    }
+  }, [activeTab, galleryImages.length]);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/');
+  };
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user?.id) return;
+    setEditLoading(true);
+    try {
+      const { error } = await supabase.from('profiles').update({
+        full_name: editFormData.full_name,
+        phone: editFormData.phone,
+        cpf: editFormData.cpf,
+        birth_date: editFormData.birth_date,
+        instagram: editFormData.instagram,
+        updated_at: new Date().toISOString()
+      }).eq('id', user.id);
+      if (error) throw error;
+      showSuccess("Perfil atualizado!");
+      setIsEditModalOpen(false);
+      fetchProfile();
+    } catch (error: any) {
+      showError(error.message);
+    } finally {
+      setEditLoading(false);
+    }
   };
 
   const handleCompleteAppointment = async (id: string) => {
@@ -240,6 +275,35 @@ const Index = () => {
       fetchAppointments();
     } catch (error: any) {
       showError(error.message);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setEditLoading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('service-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('service-images')
+        .getPublicUrl(filePath);
+
+      setServiceFormData(prev => ({ ...prev, image_url: publicUrl }));
+      showSuccess("Imagem carregada!");
+    } catch (error: any) {
+      showError(error.message);
+    } finally {
+      setEditLoading(false);
     }
   };
 
@@ -690,6 +754,24 @@ const Index = () => {
                 </div>
               </motion.div>
             )}
+
+            {!isAdmin && activeTab === "profile" && (
+              <motion.div key="profile" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+                <h3 className="text-[13px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Meu Perfil</h3>
+                <Card className="p-5 border-none shadow-sm rounded-[2rem] space-y-4 bg-white/80">
+                  <div className="space-y-0.5"><p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Nome Completo</p><p className="font-bold text-slate-700 text-[10px]">{profile?.full_name}</p></div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-0.5"><p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Telefone</p><p className="font-bold text-slate-700 text-[10px]">{profile?.phone}</p></div>
+                    <div className="space-y-0.5"><p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Instagram</p><p className="font-bold text-pink-500 text-[10px]">{profile?.instagram}</p></div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-0.5"><p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">CPF</p><p className="font-bold text-slate-700 text-[10px]">{profile?.cpf || 'Não informado'}</p></div>
+                    <div className="space-y-0.5"><p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Nascimento</p><p className="font-bold text-slate-700 text-[10px]">{profile?.birth_date || 'Não informado'}</p></div>
+                  </div>
+                  <Button onClick={() => setIsEditModalOpen(true)} variant="outline" className="w-full rounded-xl border-pink-100 text-pink-500 font-black text-[9px] h-9 tracking-widest uppercase">EDITAR DADOS</Button>
+                </Card>
+              </motion.div>
+            )}
           </AnimatePresence>
         </Tabs>
       </main>
@@ -714,8 +796,11 @@ const Index = () => {
               </div>
             </div>
             <div className="space-y-1">
-              <Label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-2">URL da Imagem</Label>
-              <Input className="bg-slate-50 border-slate-100 rounded-xl h-10 text-[10px]" value={serviceFormData.image_url} onChange={(e) => setServiceFormData({ ...serviceFormData, image_url: e.target.value })} />
+              <Label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-2">Imagem do Serviço</Label>
+              <div className="flex items-center gap-2">
+                <Input type="file" accept="image/*" onChange={handleImageUpload} className="bg-slate-50 border-slate-100 rounded-xl h-10 text-[10px] file:mr-4 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-[8px] file:font-black file:bg-pink-50 file:text-pink-700 hover:file:bg-pink-100" />
+                {serviceFormData.image_url && <div className="w-10 h-10 rounded-lg overflow-hidden border border-pink-100"><img src={serviceFormData.image_url} className="w-full h-full object-cover" /></div>}
+              </div>
             </div>
             <div className="space-y-1">
               <Label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-2">Descrição</Label>
@@ -755,6 +840,25 @@ const Index = () => {
               <Input required type="date" className="bg-slate-50 border-slate-100 rounded-xl h-10 text-[10px]" value={financialFormData.date} onChange={(e) => setFinancialFormData({ ...financialFormData, date: e.target.value })} />
             </div>
             <Button type="submit" disabled={editLoading} className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black text-[10px] py-6 rounded-2xl tracking-widest uppercase mt-2">{editLoading ? 'SALVANDO...' : 'SALVAR LANÇAMENTO'}</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Edição de Perfil (Cliente) */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="sm:max-w-[350px] rounded-[2rem] border-none shadow-2xl p-6 bg-white">
+          <DialogHeader><DialogTitle className="text-sm font-black text-slate-700 uppercase tracking-widest flex items-center gap-2"><User size={16} className="text-pink-500" /> Editar Meus Dados</DialogTitle></DialogHeader>
+          <form onSubmit={handleUpdateProfile} className="space-y-4 mt-4">
+            <div className="space-y-1"><Label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-2">Nome Completo</Label><Input required className="bg-slate-50 border-slate-100 rounded-xl h-10 text-[10px]" value={editFormData.full_name} onChange={(e) => setEditFormData({ ...editFormData, full_name: e.target.value })} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1"><Label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-2">CPF</Label><InputMask mask="999.999.999-99" value={editFormData.cpf} onChange={(e) => setEditFormData({ ...editFormData, cpf: e.target.value })}>{(inputProps: any) => <Input required className="bg-slate-50 border-slate-100 rounded-xl h-10 text-[10px]" {...inputProps} />}</InputMask></div>
+              <div className="space-y-1"><Label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-2">Telefone</Label><InputMask mask="(99) 99999-9999" value={editFormData.phone} onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}>{(inputProps: any) => <Input required className="bg-slate-50 border-slate-100 rounded-xl h-10 text-[10px]" {...inputProps} />}</InputMask></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1"><Label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-2">Nascimento</Label><InputMask mask="99/99/9999" value={editFormData.birth_date} onChange={(e) => setEditFormData({ ...editFormData, birth_date: e.target.value })}>{(inputProps: any) => <Input required className="bg-slate-50 border-slate-100 rounded-xl h-10 text-[10px]" {...inputProps} />}</InputMask></div>
+              <div className="space-y-1"><Label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-2">Instagram (@)</Label><Input className="bg-slate-50 border-slate-100 rounded-xl h-10 text-[10px]" value={editFormData.instagram} onChange={(e) => setEditFormData({ ...editFormData, instagram: e.target.value })} /></div>
+            </div>
+            <Button type="submit" disabled={editLoading} className="w-full bg-pink-600 hover:bg-pink-700 text-white font-black text-[10px] py-6 rounded-2xl tracking-widest uppercase mt-2">{editLoading ? 'SALVANDO...' : 'SALVAR ALTERAÇÕES'}</Button>
           </form>
         </DialogContent>
       </Dialog>
