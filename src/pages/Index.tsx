@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { motion, AnimatePresence } from "framer-motion";
 import { Calendar } from "@/components/ui/calendar";
-import { format, addMinutes, parse, isSameDay } from "date-fns";
+import { format, addMinutes, parse, isSameDay, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import InputMask from 'react-input-mask';
 import { Skeleton } from "@/components/ui/skeleton";
@@ -380,6 +380,15 @@ const Index = () => {
 
   const getFirstName = (name: string) => name?.split(' ')[0] || 'Gata';
 
+  // Função auxiliar para formatar data sem erro de fuso horário
+  const formatDateSafe = (date: Date | string) => {
+    if (typeof date === 'string') {
+      // Se for string do banco (YYYY-MM-DD), adicionamos o meio-dia para evitar quebra de fuso
+      return format(parseISO(date + 'T12:00:00'), "dd/MM/yyyy");
+    }
+    return format(date, "dd/MM/yyyy");
+  };
+
   if (!session) return null;
 
   return (
@@ -529,7 +538,7 @@ const Index = () => {
                         <div>
                           <h4 className="font-bold text-slate-700 text-[11px]">{app.services?.name}</h4>
                           <p className="text-[9px] text-slate-400 font-bold uppercase mt-0.5">
-                            {format(new Date(app.appointment_date), "dd/MM/yyyy")} • {app.start_time.substring(0, 5)}
+                            {formatDateSafe(app.appointment_date)} • {app.start_time.substring(0, 5)}
                           </p>
                         </div>
                         <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase ${app.status === 'completed' ? 'bg-green-50 text-green-500' : app.status === 'cancelled' ? 'bg-rose-50 text-rose-500' : 'bg-blue-50 text-blue-500'}`}>
@@ -915,7 +924,7 @@ const Index = () => {
                         <h4 className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Resumo</h4>
                         <p className="text-sm font-black text-slate-700">{bookingService?.name}</p>
                         <p className="text-[10px] font-bold text-slate-400 mt-1">
-                          {bookingDate && format(bookingDate, "dd/MM/yyyy")} às {selectedSlot.start_time.substring(0, 5)}
+                          {bookingDate && formatDateSafe(bookingDate)} às {selectedSlot.start_time.substring(0, 5)}
                         </p>
                       </div>
                       <p className="text-[10px] font-black text-pink-500 bg-pink-50 px-2 py-0.5 rounded-full">R$ {bookingService?.price}</p>
