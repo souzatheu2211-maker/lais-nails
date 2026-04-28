@@ -696,26 +696,29 @@ const Index = () => {
       <Dialog open={isServiceDetailsOpen} onOpenChange={setIsServiceDetailsOpen}>
         <DialogContent className="sm:max-w-[350px] rounded-[2rem] border-none shadow-2xl p-6 bg-white">
           <DialogHeader>
-            <DialogTitle className="text-sm font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
+            <DialogTitle className="text-sm font-black text-black uppercase tracking-widest flex items-center gap-2">
               <Sparkles size={16} className="text-pink-500" /> Detalhes do Serviço
             </DialogTitle>
           </DialogHeader>
           {viewingService && (
             <div className="space-y-4 mt-4">
-              <div className="w-full h-40 bg-pink-50 rounded-2xl overflow-hidden">
+              <div className="w-full h-40 bg-pink-50 rounded-2xl overflow-hidden relative">
                 {viewingService.image_url ? (
-                  <img src={viewingService.image_url} className="w-full h-full object-cover" />
+                  <>
+                    <img src={viewingService.image_url} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
+                  </>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-4xl">💅</div>
                 )}
               </div>
               <div className="space-y-2">
-                <h3 className="font-black text-slate-800 text-sm">{viewingService.name}</h3>
+                <h3 className="font-black text-black text-sm">{viewingService.name}</h3>
                 <div className="flex gap-3">
-                  <p className="text-[10px] font-black text-pink-500 bg-pink-50 px-2 py-0.5 rounded-full">R$ {viewingService.price}</p>
-                  <p className="text-[10px] font-black text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full">{viewingService.duration_minutes} min</p>
+                  <p className="text-[10px] font-black text-pink-600 bg-pink-50 px-2 py-0.5 rounded-full">R$ {viewingService.price}</p>
+                  <p className="text-[10px] font-black text-black bg-slate-50 px-2 py-0.5 rounded-full">{viewingService.duration_minutes} min</p>
                 </div>
-                <p className="text-[10px] text-slate-600 leading-relaxed">{viewingService.description || 'Sem descrição disponível.'}</p>
+                <p className="text-[10px] text-black font-medium leading-relaxed">{viewingService.description || 'Sem descrição disponível.'}</p>
               </div>
               <Button onClick={() => { setIsServiceDetailsOpen(false); openBookingModal(viewingService); }} className="w-full bg-pink-500 hover:bg-pink-600 text-white font-black text-[10px] py-6 rounded-2xl tracking-widest uppercase">AGENDAR AGORA</Button>
             </div>
