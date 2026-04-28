@@ -495,7 +495,10 @@ const Index = () => {
                         <h4 className="font-bold text-slate-700 text-[11px]">{service.name}</h4>
                         <p className="text-[8px] text-slate-400 font-bold uppercase mt-0.5">R$ {service.price} • {service.duration_minutes} min</p>
                       </div>
-                      <Button onClick={() => openBookingModal(service)} size="sm" className="bg-pink-500 hover:bg-pink-600 rounded-xl px-4 h-7 font-black text-[9px] tracking-wider">AGENDAR</Button>
+                      <div className="flex gap-1.5">
+                        <Button onClick={() => openServiceDetails(service)} variant="outline" size="sm" className="border-pink-200 text-pink-500 hover:bg-pink-50 rounded-xl px-3 h-7 font-black text-[9px] tracking-wider">DETALHES</Button>
+                        <Button onClick={() => openBookingModal(service)} size="sm" className="bg-pink-500 hover:bg-pink-600 rounded-xl px-4 h-7 font-black text-[9px] tracking-wider">AGENDAR</Button>
+                      </div>
                     </Card>
                   ))}
                 </div>
@@ -891,17 +894,6 @@ const Index = () => {
           </div>
         </DialogContent>
       </Dialog>
-
-      <footer className="pt-12 pb-24 flex flex-col items-center gap-1.5 text-slate-800 relative z-10">
-        <p className="text-[7px] font-black tracking-[0.2em] uppercase">Desenvolvido por Matheus Souza</p>
-        <div className="flex items-center gap-4">
-          <p className="text-[7px] font-bold">© 2026 MATHEUS SOUZA</p>
-          <a href="https://instagram.com/theu_souz2" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-pink-600 transition-colors group">
-            <Instagram size={10} className="group-hover:scale-110 transition-transform" />
-            <span className="text-[8px] font-black">@theu_souz2</span>
-          </a>
-        </div>
-      </footer>
 
       {/* BARRA DE NAVEGAÇÃO */}
       <nav className="fixed bottom-4 left-4 right-4 bg-white/80 backdrop-blur-xl border border-white/40 h-14 rounded-[1.5rem] shadow-xl flex items-center justify-around px-2 z-50">
