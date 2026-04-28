@@ -47,6 +47,10 @@ const Index = () => {
   const [selectedSlot, setSelectedSlot] = React.useState<any>(null);
   const [bookingLoading, setBookingLoading] = React.useState(false);
 
+  // Estados de Detalhes do Serviço (Cliente)
+  const [isServiceDetailsOpen, setIsServiceDetailsOpen] = React.useState(false);
+  const [viewingService, setViewingService] = React.useState<any>(null);
+
   // Estados de Detalhes da Cliente (Admin)
   const [isClientModalOpen, setIsClientModalOpen] = React.useState(false);
   const [selectedClient, setSelectedClient] = React.useState<any>(null);
@@ -324,6 +328,11 @@ const Index = () => {
     setIsClientModalOpen(true);
   };
 
+  const openServiceDetails = (service: any) => {
+    setViewingService(service);
+    setIsServiceDetailsOpen(true);
+  };
+
   const openBookingModal = (service: any) => {
     setBookingService(service);
     setIsBookingModalOpen(true);
@@ -470,7 +479,7 @@ const Index = () => {
                 <div className="grid grid-cols-1 gap-3">
                   {services.map((service) => (
                     <Card key={service.id} className="p-3 border-none shadow-sm rounded-2xl flex items-center gap-3 bg-white/80 backdrop-blur-sm">
-                      <div className="w-12 h-12 bg-pink-50 rounded-xl overflow-hidden">
+                      <div onClick={() => openServiceDetails(service)} className="w-12 h-12 bg-pink-50 rounded-xl overflow-hidden cursor-pointer">
                         {service.image_url ? (
                           <img 
                             src={service.image_url} 
@@ -482,7 +491,7 @@ const Index = () => {
                           <span className="text-xl flex items-center justify-center h-full">💅</span>
                         )}
                       </div>
-                      <div className="flex-1">
+                      <div onClick={() => openServiceDetails(service)} className="flex-1 cursor-pointer">
                         <h4 className="font-bold text-slate-700 text-[11px]">{service.name}</h4>
                         <p className="text-[8px] text-slate-400 font-bold uppercase mt-0.5">R$ {service.price} • {service.duration_minutes} min</p>
                       </div>
@@ -679,6 +688,37 @@ const Index = () => {
           </AnimatePresence>
         </Tabs>
       </main>
+
+      {/* Modal de Detalhes do Serviço (Cliente) */}
+      <Dialog open={isServiceDetailsOpen} onOpenChange={setIsServiceDetailsOpen}>
+        <DialogContent className="sm:max-w-[350px] rounded-[2rem] border-none shadow-2xl p-6 bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
+              <Sparkles size={16} className="text-pink-500" /> Detalhes do Serviço
+            </DialogTitle>
+          </DialogHeader>
+          {viewingService && (
+            <div className="space-y-4 mt-4">
+              <div className="w-full h-40 bg-pink-50 rounded-2xl overflow-hidden">
+                {viewingService.image_url ? (
+                  <img src={viewingService.image_url} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-4xl">💅</div>
+                )}
+              </div>
+              <div className="space-y-2">
+                <h3 className="font-black text-slate-800 text-sm">{viewingService.name}</h3>
+                <div className="flex gap-3">
+                  <p className="text-[10px] font-black text-pink-500 bg-pink-50 px-2 py-0.5 rounded-full">R$ {viewingService.price}</p>
+                  <p className="text-[10px] font-black text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full">{viewingService.duration_minutes} min</p>
+                </div>
+                <p className="text-[10px] text-slate-600 leading-relaxed">{viewingService.description || 'Sem descrição disponível.'}</p>
+              </div>
+              <Button onClick={() => { setIsServiceDetailsOpen(false); openBookingModal(viewingService); }} className="w-full bg-pink-500 hover:bg-pink-600 text-white font-black text-[10px] py-6 rounded-2xl tracking-widest uppercase">AGENDAR AGORA</Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Modal de Edição de Perfil (Cliente) */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
