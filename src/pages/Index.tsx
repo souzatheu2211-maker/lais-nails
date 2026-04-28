@@ -108,19 +108,23 @@ const Index = () => {
 
   const fetchAppointments = React.useCallback(async () => {
     if (!user?.id) return;
-    // Ajuste na consulta para garantir que o join com profiles funcione mesmo sem FK explícita se o Supabase permitir, 
-    // ou usando a relação correta.
+    
+    // Usando uma consulta mais robusta para garantir que os dados venham mesmo se a FK for implícita
     let query = supabase.from('appointments').select(`
       *,
-      profiles:user_id (full_name, phone, instagram, birth_date, cpf),
-      services:service_id (name, price, duration_minutes)
+      profiles:user_id (id, full_name, phone, instagram, birth_date, cpf),
+      services:service_id (id, name, price, duration_minutes)
     `);
     
-    if (!isAdmin) query = query.eq('user_id', user.id);
-    const { data, error } = await query.order('created_at', { ascending: false });
+    if (!isAdmin) {
+      query = query.eq('user_id', user.id);
+    }
+
+    const { data, error } = await query.order('appointment_date', { ascending: true }).order('start_time', { ascending: true });
     
     if (error) {
       console.error("Erro ao buscar agendamentos:", error);
+      showError("Erro ao carregar agendamentos.");
     }
     setAppointments(data || []);
   }, [user?.id, isAdmin]);
@@ -309,15 +313,18 @@ const Index = () => {
       const startTime = parse(startTimeStr, 'HH:mm:ss', new Date());
       const endTimeStr = format(addMinutes(startTime, bookingService.duration_minutes), 'HH:mm:ss');
 
-      const { data: hasConflict } = await supabase.rpc('check_appointment_conflict', {
+      // Verifica conflito via RPC
+      const { data: hasConflict, error: rpcError } = await supabase.rpc('check_appointment_conflict', {
         p_date: formattedDate,
         p_start: startTimeStr,
         p_end: endTimeStr
       });
 
+      if (rpcError) throw rpcError;
       if (hasConflict) throw new Error("Horário indisponível.");
 
-      await supabase.from('appointments').insert([{
+      // Insere o agendamento
+      const { error: insertError } = await supabase.from('appointments').insert([{
         user_id: user.id,
         service_id: bookingService.id,
         slot_id: selectedSlot.id,
@@ -327,12 +334,15 @@ const Index = () => {
         status: 'scheduled'
       }]);
 
+      if (insertError) throw insertError;
+
       showSuccess("Agendado com sucesso!");
       setIsBookingModalOpen(false);
       fetchAppointments();
       setActiveTab('history');
     } catch (error: any) {
-      showError(error.message);
+      console.error("Erro ao agendar:", error);
+      showError(error.message || "Erro ao salvar agendamento.");
     } finally {
       setBookingLoading(false);
     }
