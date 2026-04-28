@@ -405,9 +405,15 @@ const Index = () => {
       showSuccess("Agendado com sucesso!");
       setIsBookingModalOpen(false);
       setIsAdminBookingModalOpen(false);
-      fetchAppointments();
-      if (isAdmin) fetchClients();
-      if (!isAdmin) setActiveTab('history');
+      
+      // Atualiza os dados e garante que a ADM veja a lista de próximos atendimentos
+      await fetchAppointments();
+      if (isAdmin) {
+        await fetchClients();
+        setActiveTab('home');
+      } else {
+        setActiveTab('history');
+      }
     } catch (error: any) {
       showError(error.message);
     } finally {
