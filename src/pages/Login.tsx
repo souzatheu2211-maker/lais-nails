@@ -3,8 +3,9 @@
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useSession } from '@/components/SessionContextProvider';
-import { Instagram, Sparkles } from 'lucide-react';
+import { Instagram, Sparkles, ArrowLeft } from 'lucide-react';
 import { AuthForm } from '@/components/AuthForm';
+import { Button } from '@/components/ui/button';
 
 const Login = () => {
   const { session } = useSession();
@@ -12,12 +13,22 @@ const Login = () => {
 
   useEffect(() => {
     if (session) {
-      navigate('/');
+      navigate('/app');
     }
   }, [session, navigate]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-start bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-purple-600 via-pink-500 to-rose-400 p-4 overflow-hidden relative">
+      {/* Botão Voltar */}
+      <Button 
+        onClick={() => navigate('/')}
+        variant="ghost" 
+        size="icon" 
+        className="absolute top-6 left-6 text-white/80 hover:text-white hover:bg-white/20 rounded-full z-20"
+      >
+        <ArrowLeft size={20} />
+      </Button>
+
       {/* Elementos decorativos de fundo */}
       <div className="absolute top-[-5%] left-[-5%] w-48 h-48 bg-white/5 rounded-full blur-3xl animate-pulse" />
       <div className="absolute bottom-[-5%] right-[-5%] w-64 h-64 bg-purple-900/10 rounded-full blur-3xl" />

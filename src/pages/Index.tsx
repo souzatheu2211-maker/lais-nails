@@ -4,7 +4,7 @@ import * as React from "react";
 import { useSession } from "@/components/SessionContextProvider";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Calendar as CalendarIcon, Clock, Sparkles, User, LogOut, Instagram, History, Settings, Plus, Pencil, Trash2, ChevronRight, Heart, X, Check, DollarSign, Save, Info, Image as ImageIcon, Upload, Loader2, Lock, AlertCircle, CalendarDays, Users, Phone, ChevronLeft, LayoutGrid } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Sparkles, User, LogOut, Instagram, History, Settings, Plus, Pencil, Trash2, ChevronRight, Heart, X, Check, DollarSign, Save, Info, Image as ImageIcon, Upload, Loader2, Lock, AlertCircle, CalendarDays, Users, Phone, ChevronLeft, LayoutGrid, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { showError, showSuccess } from "@/utils/toast";
@@ -109,7 +109,7 @@ const Index = () => {
     if (!user?.id) return;
     let query = supabase.from('appointments').select(`
       *,
-      profiles:user_id (full_name, phone, instagram),
+      profiles:user_id (full_name, phone, instagram, birth_date, cpf),
       services:service_id (name, price, duration_minutes)
     `);
     if (!isAdmin) query = query.eq('user_id', user.id);
@@ -178,8 +178,10 @@ const Index = () => {
       fetchAppointments();
       fetchGallery();
       if (isAdmin) fetchClients();
+    } else {
+      navigate('/');
     }
-  }, [session, fetchProfile, fetchServices, fetchAppointments, fetchClients, fetchGallery, isAdmin]);
+  }, [session, fetchProfile, fetchServices, fetchAppointments, fetchClients, fetchGallery, isAdmin, navigate]);
 
   React.useEffect(() => {
     if (isAdmin && selectedDate) {
@@ -206,7 +208,7 @@ const Index = () => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    navigate('/login');
+    navigate('/');
   };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -230,6 +232,17 @@ const Index = () => {
       showError(error.message);
     } finally {
       setEditLoading(false);
+    }
+  };
+
+  const handleCompleteAppointment = async (id: string) => {
+    try {
+      const { error } = await supabase.from('appointments').update({ status: 'completed' }).eq('id', id);
+      if (error) throw error;
+      showSuccess("Atendimento concluído!");
+      fetchAppointments();
+    } catch (error: any) {
+      showError(error.message);
     }
   };
 
@@ -520,7 +533,7 @@ const Index = () => {
                           </p>
                         </div>
                         <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase ${app.status === 'completed' ? 'bg-green-50 text-green-500' : app.status === 'cancelled' ? 'bg-rose-50 text-rose-500' : 'bg-blue-50 text-blue-500'}`}>
-                          {app.status === 'scheduled' ? 'Agendado' : app.status === 'cancelled' ? 'Cancelado' : 'Concluído'}
+                          {app.status === 'scheduled' ? 'Agendado' : app.status === 'cancelled' ? 'Cancelado' : 'Atendida'}
                         </span>
                       </div>
                     </Card>
@@ -568,10 +581,10 @@ const Index = () => {
               <motion.div key="admin-home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
                 <h3 className="text-[13px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Próximos Atendimentos</h3>
                 <div className="space-y-2.5">
-                  {appointments.map((app) => (
-                    <Card key={app.id} onClick={() => openClientDetails(app.profiles)} className="p-3 border-none shadow-sm rounded-2xl bg-white/80 hover:shadow-md transition-all cursor-pointer group">
+                  {appointments.filter(a => a.status === 'scheduled').map((app) => (
+                    <Card key={app.id} className="p-3 border-none shadow-sm rounded-2xl bg-white/80 hover:shadow-md transition-all group">
                       <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-3">
+                        <div onClick={() => openClientDetails(app.profiles)} className="flex items-center gap-3 cursor-pointer">
                           <div className="w-8 h-8 bg-purple-50 rounded-xl flex items-center justify-center text-purple-400 font-black text-[10px] group-hover:bg-purple-100 transition-colors">
                             {app.profiles?.full_name?.charAt(0)}
                           </div>
@@ -581,16 +594,19 @@ const Index = () => {
                               <p className="text-[8px] text-slate-400 font-bold uppercase">
                                 {app.services?.name} • {app.start_time.substring(0, 5)}
                               </p>
-                              <p className="text-[8px] text-pink-500 font-bold uppercase flex items-center gap-0.5">
-                                <Phone size={8} /> {app.profiles?.phone}
-                              </p>
-                              <p className="text-[8px] text-purple-500 font-bold uppercase flex items-center gap-0.5">
-                                <Instagram size={8} /> {app.profiles?.instagram || '@sem_insta'}
-                              </p>
                             </div>
                           </div>
                         </div>
-                        <ChevronRight size={14} className="text-slate-200 group-hover:text-pink-400 transition-colors" />
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            onClick={() => handleCompleteAppointment(app.id)}
+                            size="sm" 
+                            className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl h-7 px-3 font-black text-[8px] tracking-widest uppercase gap-1"
+                          >
+                            <CheckCircle2 size={10} /> CONCLUIR
+                          </Button>
+                          <ChevronRight size={14} className="text-slate-200" />
+                        </div>
                       </div>
                     </Card>
                   ))}
@@ -826,6 +842,20 @@ const Index = () => {
                   <div>
                     <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Instagram</p>
                     <p className="text-[10px] font-black text-pink-500">{selectedClient.instagram || '@sem_insta'}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
+                  <CalendarIcon size={14} className="text-pink-400" />
+                  <div>
+                    <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Nascimento</p>
+                    <p className="text-[10px] font-black text-slate-600">{selectedClient.birth_date || 'Não informado'}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl">
+                  <Info size={14} className="text-pink-400" />
+                  <div>
+                    <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">CPF</p>
+                    <p className="text-[10px] font-black text-slate-600">{selectedClient.cpf || 'Não informado'}</p>
                   </div>
                 </div>
               </div>
