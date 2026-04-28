@@ -156,6 +156,24 @@ const Index = () => {
     }
   }, []);
 
+  const fetchSlotsForDate = React.useCallback(async (date: Date) => {
+    const formattedDate = format(date, 'yyyy-MM-dd');
+    const { data, error } = await supabase.from('available_slots').select('start_time').eq('date', formattedDate);
+    if (error) {
+      showError("Erro ao carregar horários");
+      return;
+    }
+    setAvailableSlots(data.map(s => s.start_time.substring(0, 5)));
+  }, []);
+
+  const fetchBookingSlots = React.useCallback(async (date: Date) => {
+    const formattedDate = format(date, 'yyyy-MM-dd');
+    const { data: slots } = await supabase.from('available_slots').select('*').eq('date', formattedDate).order('start_time');
+    const { data: apps } = await supabase.from('appointments').select('start_time, end_time').eq('appointment_date', formattedDate).eq('status', 'scheduled');
+    setAllBookingSlots(slots || []);
+    setDayAppointments(apps || []);
+  }, []);
+
   React.useEffect(() => {
     if (session) {
       fetchProfile();
@@ -171,6 +189,18 @@ const Index = () => {
     }
   }, [session, fetchProfile, fetchServices, fetchAppointments, fetchClients, fetchFinancials, fetchGallery, isAdmin, navigate]);
 
+  React.useEffect(() => {
+    if (isAdmin && selectedDate) {
+      fetchSlotsForDate(selectedDate);
+    }
+  }, [isAdmin, selectedDate, fetchSlotsForDate]);
+
+  React.useEffect(() => {
+    if (!isAdmin && bookingDate && isBookingModalOpen) {
+      fetchBookingSlots(bookingDate);
+    }
+  }, [isAdmin, bookingDate, isBookingModalOpen, fetchBookingSlots]);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/');
@@ -184,7 +214,6 @@ const Index = () => {
       const { error } = await supabase.from('appointments').update({ status: 'completed' }).eq('id', id);
       if (error) throw error;
 
-      // Lança no financeiro automaticamente
       await supabase.from('financial_transactions').insert([{
         type: 'income',
         category: 'Serviço',
@@ -211,6 +240,94 @@ const Index = () => {
       fetchAppointments();
     } catch (error: any) {
       showError(error.message);
+    }
+  };
+
+  const handleSaveService = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEditLoading(true);
+    try {
+      const payload = {
+        name: serviceFormData.name,
+        price: parseFloat(serviceFormData.price),
+        duration_minutes: parseInt(serviceFormData.duration_minutes),
+        description: serviceFormData.description,
+        image_url: serviceFormData.image_url
+      };
+      if (serviceFormData.id) {
+        await supabase.from('services').update(payload).eq('id', serviceFormData.id);
+      } else {
+        await supabase.from('services').insert([payload]);
+      }
+      showSuccess("Serviço salvo!");
+      setIsServiceModalOpen(false);
+      fetchServices();
+    } catch (error: any) {
+      showError(error.message);
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleDeleteService = async (id: string) => {
+    if (!confirm("Excluir serviço?")) return;
+    await supabase.from('services').update({ active: false }).eq('id', id);
+    fetchServices();
+  };
+
+  const handleCreateAppointment = async () => {
+    if (!selectedSlot || !bookingService || !user?.id || !bookingDate) return;
+    setBookingLoading(true);
+    try {
+      const formattedDate = format(bookingDate, 'yyyy-MM-dd');
+      const startTimeStr = selectedSlot.start_time;
+      const startTime = parse(startTimeStr, 'HH:mm:ss', new Date());
+      const endTimeStr = format(addMinutes(startTime, bookingService.duration_minutes), 'HH:mm:ss');
+
+      const { data: hasConflict } = await supabase.rpc('check_appointment_conflict', {
+        p_date: formattedDate,
+        p_start: startTimeStr,
+        p_end: endTimeStr
+      });
+
+      if (hasConflict) throw new Error("Horário indisponível.");
+
+      await supabase.from('appointments').insert([{
+        user_id: user.id,
+        service_id: bookingService.id,
+        slot_id: selectedSlot.id,
+        appointment_date: formattedDate,
+        start_time: startTimeStr,
+        end_time: endTimeStr,
+        status: 'scheduled'
+      }]);
+
+      showSuccess("Agendado com sucesso!");
+      setIsBookingModalOpen(false);
+      fetchAppointments();
+      setActiveTab('history');
+    } catch (error: any) {
+      showError(error.message);
+    } finally {
+      setBookingLoading(false);
+    }
+  };
+
+  const saveDailySlots = async () => {
+    if (!selectedDate) return;
+    setSavingSlots(true);
+    const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+    try {
+      await supabase.from('available_slots').delete().eq('date', formattedDate);
+      if (availableSlots.length > 0) {
+        const newSlots = availableSlots.map(time => ({ date: formattedDate, start_time: `${time}:00`, is_available: true }));
+        await supabase.from('available_slots').insert(newSlots);
+      }
+      showSuccess("Agenda salva!");
+    } catch (error: any) {
+      showError(error.message);
+    } finally {
+      setSavingSlots(false);
     }
   };
 
@@ -262,11 +379,54 @@ const Index = () => {
     setIsFinancialModalOpen(true);
   };
 
+  const openServiceModal = (service: any = null) => {
+    if (service) {
+      setServiceFormData({
+        id: service.id,
+        name: service.name,
+        price: service.price.toString(),
+        duration_minutes: service.duration_minutes.toString(),
+        description: service.description || '',
+        image_url: service.image_url || ''
+      });
+    } else {
+      setServiceFormData({ id: '', name: '', price: '', duration_minutes: '', description: '', image_url: '' });
+    }
+    setIsServiceModalOpen(true);
+  };
+
+  const openClientDetails = (client: any, appointment: any = null) => {
+    setSelectedClient(client);
+    setSelectedAppointment(appointment);
+    setIsClientModalOpen(true);
+  };
+
+  const openServiceDetails = (service: any) => {
+    setViewingService(service);
+    setIsServiceDetailsOpen(true);
+  };
+
+  const openBookingModal = (service: any) => {
+    setBookingService(service);
+    setIsBookingModalOpen(true);
+    setSelectedSlot(null);
+  };
+
+  const toggleSlot = (time: string) => {
+    setAvailableSlots(prev => prev.includes(time) ? prev.filter(t => t !== time) : [...prev, time]);
+  };
+
   const totals = React.useMemo(() => {
     const income = financials.filter(f => f.type === 'income').reduce((acc, curr) => acc + Number(curr.amount), 0);
     const expense = financials.filter(f => f.type === 'expense').reduce((acc, curr) => acc + Number(curr.amount), 0);
     return { income, expense, balance: income - expense };
   }, [financials]);
+
+  const timeSlots = Array.from({ length: 25 }, (_, i) => {
+    const hour = Math.floor(i / 2) + 8;
+    const minute = i % 2 === 0 ? '00' : '30';
+    return `${hour.toString().padStart(2, '0')}:${minute}`;
+  });
 
   const getFirstName = (name: string) => name?.split(' ')[0] || 'Gata';
   const formatDateSafe = (date: Date | string) => {
@@ -468,6 +628,26 @@ const Index = () => {
                 <Card className="p-2 border-none shadow-sm rounded-[2.5rem] bg-white/90 backdrop-blur-md">
                   <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} locale={ptBR} className="rounded-2xl border-none mx-auto" />
                 </Card>
+                {selectedDate && (
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center px-1">
+                      <h4 className="text-[11px] font-black text-pink-400 uppercase tracking-widest">Horários para {format(selectedDate, "dd/MM", { locale: ptBR })}</h4>
+                      <Button onClick={saveDailySlots} disabled={savingSlots} size="sm" className="bg-purple-600 hover:bg-purple-700 rounded-xl gap-1.5 font-black text-[9px] h-7 tracking-wider shadow-md">
+                        <Save size={12} /> {savingSlots ? 'SALVANDO...' : 'SALVAR'}
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-4 gap-2">
+                      {timeSlots.map((time) => {
+                        const isSelected = availableSlots.includes(time);
+                        return (
+                          <button key={time} onClick={() => toggleSlot(time)} className={`h-9 rounded-xl text-[10px] font-black transition-all border-2 ${isSelected ? 'bg-pink-500 border-pink-500 text-white shadow-md scale-105' : 'bg-slate-200 border-slate-300 text-slate-400 hover:border-pink-200'}`}>
+                            {time}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </motion.div>
             )}
 
@@ -513,6 +693,38 @@ const Index = () => {
           </AnimatePresence>
         </Tabs>
       </main>
+
+      {/* Modal de Serviço (Admin) */}
+      <Dialog open={isServiceModalOpen} onOpenChange={setIsServiceModalOpen}>
+        <DialogContent className="sm:max-w-[350px] rounded-[2rem] border-none shadow-2xl p-6 bg-white">
+          <DialogHeader><DialogTitle className="text-sm font-black text-slate-700 uppercase tracking-widest flex items-center gap-2"><Settings size={16} className="text-pink-500" /> {serviceFormData.id ? 'Editar Serviço' : 'Novo Serviço'}</DialogTitle></DialogHeader>
+          <form onSubmit={handleSaveService} className="space-y-4 mt-4">
+            <div className="space-y-1">
+              <Label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-2">Nome do Serviço</Label>
+              <Input required className="bg-slate-50 border-slate-100 rounded-xl h-10 text-[10px]" value={serviceFormData.name} onChange={(e) => setServiceFormData({ ...serviceFormData, name: e.target.value })} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-2">Preço (R$)</Label>
+                <Input required type="number" className="bg-slate-50 border-slate-100 rounded-xl h-10 text-[10px]" value={serviceFormData.price} onChange={(e) => setServiceFormData({ ...serviceFormData, price: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-2">Duração (min)</Label>
+                <Input required type="number" className="bg-slate-50 border-slate-100 rounded-xl h-10 text-[10px]" value={serviceFormData.duration_minutes} onChange={(e) => setServiceFormData({ ...serviceFormData, duration_minutes: e.target.value })} />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-2">URL da Imagem</Label>
+              <Input className="bg-slate-50 border-slate-100 rounded-xl h-10 text-[10px]" value={serviceFormData.image_url} onChange={(e) => setServiceFormData({ ...serviceFormData, image_url: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-2">Descrição</Label>
+              <Textarea className="bg-slate-50 border-slate-100 rounded-xl text-[10px] min-h-[80px]" value={serviceFormData.description} onChange={(e) => setServiceFormData({ ...serviceFormData, description: e.target.value })} />
+            </div>
+            <Button type="submit" disabled={editLoading} className="w-full bg-pink-600 hover:bg-pink-700 text-white font-black text-[10px] py-6 rounded-2xl tracking-widest uppercase mt-2">{editLoading ? 'SALVANDO...' : 'SALVAR SERVIÇO'}</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal Financeiro (Admin) */}
       <Dialog open={isFinancialModalOpen} onOpenChange={setIsFinancialModalOpen}>
@@ -588,6 +800,27 @@ const Index = () => {
               <div className="flex items-center gap-2 ml-1"><CalendarDays size={14} className="text-pink-500" /><Label className="text-[10px] font-black text-pink-300 uppercase tracking-[0.2em]">1. Escolha o dia</Label></div>
               <Card className="p-2 border-none shadow-sm rounded-[2.5rem] bg-white/90 backdrop-blur-md border border-pink-50"><Calendar mode="single" selected={bookingDate} onSelect={setBookingDate} locale={ptBR} disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))} className="rounded-2xl border-none mx-auto" /></Card>
             </div>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 ml-1"><Clock size={14} className="text-pink-500" /><Label className="text-[10px] font-black text-pink-300 uppercase tracking-[0.2em]">2. Escolha o horário</Label></div>
+              <div className="grid grid-cols-4 gap-2.5">
+                {timeSlots.map((time) => {
+                  const slotInDb = allBookingSlots.find(s => s.start_time.substring(0, 5) === time);
+                  const isBooked = dayAppointments.some(app => {
+                    const start = app.start_time.substring(0, 5);
+                    const end = app.end_time.substring(0, 5);
+                    return time >= start && time < end;
+                  });
+                  const isAvailable = slotInDb?.is_available === true && !isBooked;
+                  const isSelected = selectedSlot?.id === slotInDb?.id && slotInDb?.id !== undefined;
+                  return (
+                    <motion.button key={time} whileTap={{ scale: 0.95 }} disabled={!isAvailable} onClick={() => isAvailable && setSelectedSlot(slotInDb)} className={`h-10 rounded-xl text-[10px] font-black transition-all border-2 flex items-center justify-center gap-1 relative overflow-hidden ${!isAvailable ? 'bg-slate-200 border-slate-300 text-slate-400 cursor-not-allowed' : isSelected ? 'bg-pink-500 border-pink-600 text-white shadow-lg scale-105' : 'bg-emerald-500 border-emerald-600 text-white hover:bg-emerald-600'}`}>
+                      {!isAvailable ? <Lock size={10} /> : isSelected ? <Check size={10} /> : null}
+                      {time}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </div>
             {selectedSlot && (
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                 <Card className="p-5 border-none bg-gradient-to-br from-slate-50 to-white shadow-xl rounded-[2rem] relative overflow-hidden border border-pink-50">
@@ -596,7 +829,7 @@ const Index = () => {
                       <div><h4 className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Resumo</h4><p className="text-sm font-black text-slate-700">{bookingService?.name}</p><p className="text-[10px] font-bold text-slate-400 mt-1">{bookingDate && formatDateSafe(bookingDate)} às {selectedSlot.start_time.substring(0, 5)}</p></div>
                       <p className="text-[10px] font-black text-pink-500 bg-pink-50 px-2 py-0.5 rounded-full">R$ {bookingService?.price}</p>
                     </div>
-                    <Button onClick={() => {}} disabled={bookingLoading} className="w-full bg-gradient-to-r from-purple-600 to-pink-500 text-white font-black text-[11px] py-6 rounded-2xl shadow-lg tracking-widest uppercase active:scale-95 transition-all">CONFIRMAR AGENDAMENTO</Button>
+                    <Button onClick={handleCreateAppointment} disabled={bookingLoading} className="w-full bg-gradient-to-r from-purple-600 to-pink-500 text-white font-black text-[11px] py-6 rounded-2xl shadow-lg tracking-widest uppercase active:scale-95 transition-all">{bookingLoading ? "PROCESSANDO..." : "CONFIRMAR AGENDAMENTO"}</Button>
                   </div>
                 </Card>
               </motion.div>
