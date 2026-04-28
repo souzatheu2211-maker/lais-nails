@@ -18,6 +18,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { format, addMinutes, parse, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import InputMask from 'react-input-mask';
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Importando a imagem de fundo para garantir que o Vite a processe corretamente
 import laisBg from "@/assets/lais-bg.jpeg";
@@ -25,7 +26,6 @@ import laisBg from "@/assets/lais-bg.jpeg";
 const Index = () => {
   const { session, user } = useSession();
   const navigate = useNavigate();
-  // Definindo 'welcome' como a aba inicial (Galeria/Início)
   const [activeTab, setActiveTab] = React.useState("welcome");
   const [profile, setProfile] = React.useState<any>(null);
   const [services, setServices] = React.useState<any[]>([]);
@@ -51,9 +51,10 @@ const Index = () => {
   const [isClientModalOpen, setIsClientModalOpen] = React.useState(false);
   const [selectedClient, setSelectedClient] = React.useState<any>(null);
 
-  // Estados de Galeria
-  const [galleryImages, setGalleryImages] = React.useState<any[]>([]);
+  // Estados de Galeria Otimizada
+  const [galleryImages, setGalleryImages] = React.useState<string[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
+  const [imageLoading, setImageLoading] = React.useState(true);
 
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
   const [isServiceModalOpen, setIsServiceModalOpen] = React.useState(false);
@@ -118,10 +119,30 @@ const Index = () => {
     setClients(data || []);
   }, [isAdmin]);
 
+  // Galeria com Cache Local (SessionStorage)
   const fetchGallery = React.useCallback(async () => {
+    const cachedGallery = sessionStorage.getItem('lais_nails_gallery');
+    if (cachedGallery) {
+      setGalleryImages(JSON.parse(cachedGallery));
+      return;
+    }
+
     const { data } = await supabase.from('services').select('image_url').not('image_url', 'is', null);
-    if (data) setGalleryImages(data.map(d => d.image_url));
+    if (data) {
+      const urls = data.map(d => d.image_url);
+      setGalleryImages(urls);
+      sessionStorage.setItem('lais_nails_gallery', JSON.stringify(urls));
+    }
   }, []);
+
+  // Pré-carregamento da próxima imagem
+  React.useEffect(() => {
+    if (galleryImages.length > 0) {
+      const nextIndex = (currentImageIndex + 1) % galleryImages.length;
+      const img = new Image();
+      img.src = galleryImages[nextIndex];
+    }
+  }, [currentImageIndex, galleryImages]);
 
   const fetchSlotsForDate = React.useCallback(async (date: Date) => {
     const formattedDate = format(date, 'yyyy-MM-dd');
@@ -168,12 +189,13 @@ const Index = () => {
     }
   }, [isAdmin, bookingDate, isBookingModalOpen, fetchBookingSlots]);
 
-  // Auto-play galeria na aba welcome
+  // Auto-play galeria
   React.useEffect(() => {
-    if (activeTab === "welcome" && galleryImages.length > 0) {
+    if (activeTab === "welcome" && galleryImages.length > 1) {
       const timer = setInterval(() => {
         setCurrentImageIndex(prev => (prev + 1) % galleryImages.length);
-      }, 5000);
+        setImageLoading(true);
+      }, 6000);
       return () => clearInterval(timer);
     }
   }, [activeTab, galleryImages.length]);
@@ -226,6 +248,7 @@ const Index = () => {
       showSuccess("Serviço salvo!");
       setIsServiceModalOpen(false);
       fetchServices();
+      sessionStorage.removeItem('lais_nails_gallery'); // Limpa cache para atualizar galeria
     } catch (error: any) {
       showError(error.message);
     } finally {
@@ -237,6 +260,7 @@ const Index = () => {
     if (!confirm("Excluir serviço?")) return;
     await supabase.from('services').update({ active: false }).eq('id', id);
     fetchServices();
+    sessionStorage.removeItem('lais_nails_gallery');
   };
 
   const handleCreateAppointment = async () => {
@@ -338,12 +362,14 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-['Inter'] relative overflow-x-hidden">
-      {/* IMAGEM DE FUNDO GLOBAL - Visibilidade aumentada para 45% para ficar bem nítida */}
+      {/* IMAGEM DE FUNDO GLOBAL */}
       <div className="fixed inset-0 pointer-events-none z-0 flex items-center justify-center opacity-[0.45]">
         <img 
           src={laisBg} 
           alt="Background" 
           className="w-full h-full object-cover" 
+          loading="eager"
+          decoding="async"
         />
       </div>
 
@@ -374,10 +400,8 @@ const Index = () => {
       <main className="px-5 mt-4 flex-1 relative z-10">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <AnimatePresence mode="wait">
-            {/* ABA DE BOAS-VINDAS (GALERIA) - PADRÃO */}
             {activeTab === "welcome" && (
               <motion.div key="welcome" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-6">
-                {/* Frase Chamativa */}
                 <div className="text-center space-y-1 px-2">
                   <h2 className="text-2xl font-black text-slate-800 leading-tight tracking-tight">
                     Sua beleza merece <span className="text-pink-500">protagonismo.</span>
@@ -385,19 +409,27 @@ const Index = () => {
                   <p className="text-[10px] font-bold text-slate-700 uppercase tracking-[0.3em]">Onde a arte encontra o cuidado</p>
                 </div>
 
-                {/* Carrossel de Galeria */}
+                {/* Carrossel de Galeria Otimizado */}
                 <Card className="relative h-[400px] w-full rounded-[2.5rem] border-none shadow-2xl overflow-hidden bg-slate-100 group">
                   <AnimatePresence mode="wait">
                     {galleryImages.length > 0 ? (
-                      <motion.img
-                        key={currentImageIndex}
-                        src={galleryImages[currentImageIndex]}
-                        initial={{ opacity: 0, scale: 1.1 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        transition={{ duration: 0.8 }}
-                        className="w-full h-full object-cover"
-                      />
+                      <div className="relative w-full h-full">
+                        {imageLoading && (
+                          <Skeleton className="absolute inset-0 w-full h-full rounded-[2.5rem]" />
+                        )}
+                        <motion.img
+                          key={currentImageIndex}
+                          src={galleryImages[currentImageIndex]}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.5 }}
+                          onLoad={() => setImageLoading(false)}
+                          className={`w-full h-full object-cover transition-opacity duration-500 ${imageLoading ? 'opacity-0' : 'opacity-100'}`}
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      </div>
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center text-slate-300 gap-2">
                         <ImageIcon size={40} strokeWidth={1} />
@@ -406,12 +438,10 @@ const Index = () => {
                     )}
                   </AnimatePresence>
                   
-                  {/* Overlay Gradiente */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
                   
-                  {/* Controles do Carrossel */}
                   <div className="absolute bottom-6 left-6 right-6 flex justify-between items-center">
-                    <Button onClick={() => setCurrentImageIndex(prev => (prev - 1 + galleryImages.length) % galleryImages.length)} variant="ghost" size="icon" className="text-white bg-white/10 backdrop-blur-md hover:bg-white/20 rounded-full h-10 w-10">
+                    <Button onClick={() => { setCurrentImageIndex(prev => (prev - 1 + galleryImages.length) % galleryImages.length); setImageLoading(true); }} variant="ghost" size="icon" className="text-white bg-white/10 backdrop-blur-md hover:bg-white/20 rounded-full h-10 w-10">
                       <ChevronLeft size={20} />
                     </Button>
                     <div className="flex gap-1.5">
@@ -419,13 +449,12 @@ const Index = () => {
                         <div key={i} className={`h-1 rounded-full transition-all duration-500 ${i === currentImageIndex ? 'w-6 bg-pink-500' : 'w-2 bg-white/30'}`} />
                       ))}
                     </div>
-                    <Button onClick={() => setCurrentImageIndex(prev => (prev + 1) % galleryImages.length)} variant="ghost" size="icon" className="text-white bg-white/10 backdrop-blur-md hover:bg-white/20 rounded-full h-10 w-10">
+                    <Button onClick={() => { setCurrentImageIndex(prev => (prev + 1) % galleryImages.length); setImageLoading(true); }} variant="ghost" size="icon" className="text-white bg-white/10 backdrop-blur-md hover:bg-white/20 rounded-full h-10 w-10">
                       <ChevronRight size={20} />
                     </Button>
                   </div>
                 </Card>
 
-                {/* Botão de Ação Rápida */}
                 <Button onClick={() => setActiveTab(isAdmin ? 'home' : 'services')} className="w-full bg-gradient-to-r from-purple-600 to-pink-500 text-white font-black text-[11px] py-7 rounded-2xl shadow-xl shadow-pink-200/50 tracking-[0.2em] uppercase active:scale-95 transition-all">
                   {isAdmin ? 'GERENCIAR ATENDIMENTOS' : 'VER SERVIÇOS E AGENDAR'}
                 </Button>
@@ -442,7 +471,16 @@ const Index = () => {
                   {services.map((service) => (
                     <Card key={service.id} className="p-3 border-none shadow-sm rounded-2xl flex items-center gap-3 bg-white/80 backdrop-blur-sm">
                       <div className="w-12 h-12 bg-pink-50 rounded-xl overflow-hidden">
-                        {service.image_url ? <img src={service.image_url} className="w-full h-full object-cover" /> : <span className="text-xl flex items-center justify-center h-full">💅</span>}
+                        {service.image_url ? (
+                          <img 
+                            src={service.image_url} 
+                            className="w-full h-full object-cover" 
+                            loading="lazy" 
+                            decoding="async" 
+                          />
+                        ) : (
+                          <span className="text-xl flex items-center justify-center h-full">💅</span>
+                        )}
                       </div>
                       <div className="flex-1">
                         <h4 className="font-bold text-slate-700 text-[11px]">{service.name}</h4>
@@ -583,7 +621,16 @@ const Index = () => {
                     <Card key={service.id} className="p-3 border-none shadow-sm rounded-2xl flex justify-between items-center bg-white/80">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-slate-100 rounded-xl overflow-hidden">
-                          {service.image_url ? <img src={service.image_url} className="w-full h-full object-cover" /> : <ImageIcon size={16} className="text-slate-300 m-auto" />}
+                          {service.image_url ? (
+                            <img 
+                              src={service.image_url} 
+                              className="w-full h-full object-cover" 
+                              loading="lazy" 
+                              decoding="async" 
+                            />
+                          ) : (
+                            <ImageIcon size={16} className="text-slate-300 m-auto" />
+                          )}
                         </div>
                         <div>
                           <h4 className="font-bold text-slate-700 text-[11px]">{service.name}</h4>
@@ -816,9 +863,8 @@ const Index = () => {
         </div>
       </footer>
 
-      {/* BARRA DE NAVEGAÇÃO ATUALIZADA */}
+      {/* BARRA DE NAVEGAÇÃO */}
       <nav className="fixed bottom-4 left-4 right-4 bg-white/80 backdrop-blur-xl border border-white/40 h-14 rounded-[1.5rem] shadow-xl flex items-center justify-around px-2 z-50">
-        {/* Aba Início (Galeria) - Sempre visível */}
         <button onClick={() => setActiveTab('welcome')} className={`p-2.5 rounded-xl transition-all ${activeTab === 'welcome' ? 'bg-pink-50/50 scale-105' : 'hover:bg-slate-50/50'}`}>
           <Sparkles size={18} className={activeTab === 'welcome' ? 'text-pink-500 animate-pulse' : ''} style={activeTab !== 'welcome' ? { stroke: 'url(#purple-gradient)' } : {}} />
         </button>
