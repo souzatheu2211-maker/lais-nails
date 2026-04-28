@@ -498,6 +498,16 @@ const Index = () => {
                       <p className="font-bold text-pink-500 text-[10px]">{profile?.instagram}</p>
                     </div>
                   </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-0.5">
+                      <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">CPF</p>
+                      <p className="font-bold text-slate-700 text-[10px]">{profile?.cpf || 'Não informado'}</p>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Nascimento</p>
+                      <p className="font-bold text-slate-700 text-[10px]">{profile?.birth_date || 'Não informado'}</p>
+                    </div>
+                  </div>
                   <Button onClick={() => setIsEditModalOpen(true)} variant="outline" className="w-full rounded-xl border-pink-100 text-pink-500 font-black text-[9px] h-9 tracking-widest uppercase">EDITAR DADOS</Button>
                 </Card>
               </motion.div>
@@ -515,11 +525,19 @@ const Index = () => {
                           <div className="w-8 h-8 bg-purple-50 rounded-xl flex items-center justify-center text-purple-400 font-black text-[10px] group-hover:bg-purple-100 transition-colors">
                             {app.profiles?.full_name?.charAt(0)}
                           </div>
-                          <div>
+                          <div className="flex flex-col">
                             <h4 className="font-bold text-slate-700 text-[10px]">{app.profiles?.full_name}</h4>
-                            <p className="text-[9px] text-slate-400 font-bold uppercase">
-                              {app.services?.name} • {app.start_time.substring(0, 5)}
-                            </p>
+                            <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-0.5">
+                              <p className="text-[8px] text-slate-400 font-bold uppercase">
+                                {app.services?.name} • {app.start_time.substring(0, 5)}
+                              </p>
+                              <p className="text-[8px] text-pink-500 font-bold uppercase flex items-center gap-0.5">
+                                <Phone size={8} /> {app.profiles?.phone}
+                              </p>
+                              <p className="text-[8px] text-purple-500 font-bold uppercase flex items-center gap-0.5">
+                                <Instagram size={8} /> {app.profiles?.instagram || '@sem_insta'}
+                              </p>
+                            </div>
                           </div>
                         </div>
                         <ChevronRight size={14} className="text-slate-200 group-hover:text-pink-400 transition-colors" />
@@ -615,7 +633,78 @@ const Index = () => {
         </Tabs>
       </main>
 
-      {/* Modal de Detalhes da Cliente */}
+      {/* Modal de Edição de Perfil (Cliente) */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="sm:max-w-[350px] rounded-[2rem] border-none shadow-2xl p-6 bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
+              <User size={16} className="text-pink-500" /> Editar Meus Dados
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleUpdateProfile} className="space-y-4 mt-4">
+            <div className="space-y-1">
+              <Label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-2">Nome Completo</Label>
+              <Input
+                required
+                className="bg-slate-50 border-slate-100 rounded-xl h-10 text-[10px]"
+                value={editFormData.full_name}
+                onChange={(e) => setEditFormData({ ...editFormData, full_name: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-2">CPF</Label>
+                <InputMask
+                  mask="999.999.999-99"
+                  value={editFormData.cpf}
+                  onChange={(e) => setEditFormData({ ...editFormData, cpf: e.target.value })}
+                >
+                  {(inputProps: any) => <Input required className="bg-slate-50 border-slate-100 rounded-xl h-10 text-[10px]" {...inputProps} />}
+                </InputMask>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-2">Telefone</Label>
+                <InputMask
+                  mask="(99) 99999-9999"
+                  value={editFormData.phone}
+                  onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+                >
+                  {(inputProps: any) => <Input required className="bg-slate-50 border-slate-100 rounded-xl h-10 text-[10px]" {...inputProps} />}
+                </InputMask>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-2">Nascimento</Label>
+                <InputMask
+                  mask="99/99/9999"
+                  value={editFormData.birth_date}
+                  onChange={(e) => setEditFormData({ ...editFormData, birth_date: e.target.value })}
+                >
+                  {(inputProps: any) => <Input required className="bg-slate-50 border-slate-100 rounded-xl h-10 text-[10px]" {...inputProps} />}
+                </InputMask>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-2">Instagram (@)</Label>
+                <Input
+                  className="bg-slate-50 border-slate-100 rounded-xl h-10 text-[10px]"
+                  value={editFormData.instagram}
+                  onChange={(e) => setEditFormData({ ...editFormData, instagram: e.target.value })}
+                />
+              </div>
+            </div>
+            <Button 
+              type="submit" 
+              disabled={editLoading}
+              className="w-full bg-pink-600 hover:bg-pink-700 text-white font-black text-[10px] py-6 rounded-2xl tracking-widest uppercase mt-2"
+            >
+              {editLoading ? 'SALVANDO...' : 'SALVAR ALTERAÇÕES'}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Detalhes da Cliente (Admin) */}
       <Dialog open={isClientModalOpen} onOpenChange={setIsClientModalOpen}>
         <DialogContent className="sm:max-w-[350px] rounded-[2rem] border-none shadow-2xl p-6 bg-white">
           <DialogHeader>
