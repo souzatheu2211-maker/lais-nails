@@ -16,8 +16,6 @@ const Landing = () => {
     { icon: <Star size={28} />, label: "Brilho", color: "bg-rose-50 text-rose-500" },
   ];
 
-  const instagramUrl = "https://www.instagram.com/lais.s.nails?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==";
-
   return (
     <div className="min-h-screen bg-white overflow-hidden font-['Inter']">
       {/* Hero Section */}
@@ -101,23 +99,12 @@ const Landing = () => {
         </motion.div>
 
         {/* Footer da Landing */}
-        <div className="absolute bottom-6 left-0 right-0 flex flex-col items-center gap-2">
-          <div className="flex flex-col items-center gap-1 mb-2">
-            <p className="text-[7px] font-black text-slate-400 uppercase tracking-[0.3em]">Agende sua experiência de luxo</p>
-            <a 
-              href={instagramUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 text-slate-400 hover:text-pink-500 transition-colors cursor-pointer bg-slate-50 px-4 py-1.5 rounded-full border border-slate-100 shadow-sm"
-            >
-              <Instagram size={12} />
-              <span className="text-[9px] font-bold tracking-wider">@lais.s.nails</span>
-            </a>
-          </div>
-          
-          <div className="flex flex-col items-center gap-0.5 opacity-40">
-            <p className="text-[6px] font-black text-slate-900 uppercase tracking-[0.2em]">Desenvolvido por</p>
-            <p className="text-[7px] font-black text-slate-900 uppercase tracking-[0.1em]">Matheus Souza</p>
+        <div className="absolute bottom-10 left-0 right-0 flex flex-col items-center gap-3">
+          <div className="h-[1px] w-12 bg-slate-200 mb-1" />
+          <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em]">Agende sua experiência de luxo</p>
+          <div className="flex items-center gap-2 text-slate-400 hover:text-pink-500 transition-colors cursor-pointer">
+            <Instagram size={14} />
+            <span className="text-[10px] font-bold tracking-wider">@laisnails_</span>
           </div>
         </div>
       </div>
