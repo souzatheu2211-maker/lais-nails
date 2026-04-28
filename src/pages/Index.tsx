@@ -392,7 +392,7 @@ const Index = () => {
 
       if (hasConflict) throw new Error("Horário indisponível.");
 
-      await supabase.from('appointments').insert([{
+      const { error: insertError } = await supabase.from('appointments').insert([{
         user_id: targetUserId,
         service_id: targetServiceId,
         slot_id: selectedSlot.id,
@@ -401,6 +401,8 @@ const Index = () => {
         end_time: endTimeStr,
         status: 'scheduled'
       }]);
+
+      if (insertError) throw insertError;
 
       showSuccess("Agendado com sucesso!");
       setIsBookingModalOpen(false);
@@ -673,7 +675,6 @@ const Index = () => {
                           <Button onClick={() => openFinancialModal(item)} variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-pink-500"><Pencil size={12} /></Button>
                           <Button onClick={() => handleDeleteFinancial(item.id)} variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-rose-500"><Trash2 size={12} /></Button>
                         </div>
-                      </div>
                     </Card>
                   ))}
                 </div>
