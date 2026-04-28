@@ -114,10 +114,10 @@ const Landing = () => {
         </a>
 
         <div className="flex flex-col items-center gap-1">
-          <p className="text-[7px] font-black text-slate-300 uppercase tracking-[0.3em]">
+          <p className="text-[7px] font-black text-black uppercase tracking-[0.3em]">
             DESENVOLVIDO POR MATHEUS SOUZA
           </p>
-          <p className="text-[6px] font-bold text-slate-200">
+          <p className="text-[6px] font-bold text-slate-400">
             © 2026 TODOS OS DIREITOS RESERVADOS
           </p>
         </div>
