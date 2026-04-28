@@ -143,16 +143,10 @@ const Index = () => {
   }, [isAdmin]);
 
   const fetchGallery = React.useCallback(async () => {
-    const cachedGallery = sessionStorage.getItem('lais_nails_gallery');
-    if (cachedGallery) {
-      setGalleryImages(JSON.parse(cachedGallery));
-      return;
-    }
-    const { data } = await supabase.from('services').select('image_url').not('image_url', 'is', null);
+    const { data } = await supabase.from('services').select('image_url').not('image_url', 'is', null).eq('active', true);
     if (data) {
-      const urls = data.map(d => d.image_url);
+      const urls = data.map(d => d.image_url).filter(Boolean) as string[];
       setGalleryImages(urls);
-      sessionStorage.setItem('lais_nails_gallery', JSON.stringify(urls));
     }
   }, []);
 
@@ -326,6 +320,7 @@ const Index = () => {
       showSuccess("Serviço salvo!");
       setIsServiceModalOpen(false);
       fetchServices();
+      fetchGallery();
     } catch (error: any) {
       showError(error.message);
     } finally {
@@ -337,6 +332,7 @@ const Index = () => {
     if (!confirm("Excluir serviço?")) return;
     await supabase.from('services').update({ active: false }).eq('id', id);
     fetchServices();
+    fetchGallery();
   };
 
   const handleCreateAppointment = async () => {
@@ -775,6 +771,30 @@ const Index = () => {
           </AnimatePresence>
         </Tabs>
       </main>
+
+      {/* Modal de Detalhes do Serviço (Cliente) */}
+      <Dialog open={isServiceDetailsOpen} onOpenChange={setIsServiceDetailsOpen}>
+        <DialogContent className="sm:max-w-[350px] rounded-[2rem] border-none shadow-2xl p-0 bg-white overflow-hidden">
+          {viewingService?.image_url && (
+            <div className="h-48 w-full overflow-hidden">
+              <img src={viewingService.image_url} className="w-full h-full object-cover" alt={viewingService.name} />
+            </div>
+          )}
+          <div className="p-6 space-y-4">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-black text-slate-800 uppercase tracking-tight">{viewingService?.name}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-black text-pink-500 bg-pink-50 px-2 py-1 rounded-full uppercase tracking-widest">R$ {viewingService?.price}</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{viewingService?.duration_minutes} MINUTOS</span>
+              </div>
+              <p className="text-[11px] text-slate-600 leading-relaxed">{viewingService?.description || 'Sem descrição disponível.'}</p>
+            </div>
+            <Button onClick={() => { setIsServiceDetailsOpen(false); openBookingModal(viewingService); }} className="w-full bg-pink-600 hover:bg-pink-700 text-white font-black text-[10px] py-6 rounded-2xl tracking-widest uppercase">AGENDAR AGORA</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal de Serviço (Admin) */}
       <Dialog open={isServiceModalOpen} onOpenChange={setIsServiceModalOpen}>
