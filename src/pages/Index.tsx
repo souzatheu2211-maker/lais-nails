@@ -4,7 +4,7 @@ import * as React from "react";
 import { useSession } from "@/components/SessionContextProvider";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Calendar as CalendarIcon, Clock, Sparkles, User, LogOut, Instagram, History, Settings, Plus, Pencil, Trash2, ChevronRight, Heart, X, Check, DollarSign, Save, Info, Image as ImageIcon, Upload, Loader2, Lock, AlertCircle, CalendarDays, Users, Phone, ChevronLeft, LayoutGrid, CheckCircle2, TrendingUp, TrendingDown, Wallet } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Sparkles, User, LogOut, Instagram, History, Settings, Plus, Pencil, Trash2, ChevronRight, ChevronLeft, Heart, X, Check, DollarSign, Save, Info, Image as ImageIcon, Upload, Loader2, Lock, AlertCircle, CalendarDays, Users, Phone, LayoutGrid, CheckCircle2, TrendingUp, TrendingDown, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { showError, showSuccess } from "@/utils/toast";
@@ -205,6 +205,16 @@ const Index = () => {
       return () => clearInterval(timer);
     }
   }, [activeTab, galleryImages.length]);
+
+  const nextImage = () => {
+    setCurrentImageIndex(prev => (prev + 1) % galleryImages.length);
+    setImageLoading(true);
+  };
+
+  const prevImage = () => {
+    setCurrentImageIndex(prev => (prev - 1 + galleryImages.length) % galleryImages.length);
+    setImageLoading(true);
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -539,7 +549,28 @@ const Index = () => {
                 </div>
                 <Card className="relative h-[400px] w-full rounded-[2.5rem] border-none shadow-2xl overflow-hidden bg-slate-100 group">
                   {galleryImages.length > 0 ? (
-                    <motion.img key={currentImageIndex} src={galleryImages[currentImageIndex]} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} className="w-full h-full object-cover" />
+                    <>
+                      <motion.img key={currentImageIndex} src={galleryImages[currentImageIndex]} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} className="w-full h-full object-cover" />
+                      
+                      {/* Botões de Navegação */}
+                      <div className="absolute inset-y-0 left-0 flex items-center pl-2">
+                        <Button onClick={(e) => { e.stopPropagation(); prevImage(); }} variant="ghost" size="icon" className="bg-white/20 backdrop-blur-md hover:bg-white/40 text-white rounded-full h-10 w-10 shadow-lg border border-white/30">
+                          <ChevronLeft size={24} />
+                        </Button>
+                      </div>
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+                        <Button onClick={(e) => { e.stopPropagation(); nextImage(); }} variant="ghost" size="icon" className="bg-white/20 backdrop-blur-md hover:bg-white/40 text-white rounded-full h-10 w-10 shadow-lg border border-white/30">
+                          <ChevronRight size={24} />
+                        </Button>
+                      </div>
+
+                      {/* Indicadores */}
+                      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
+                        {galleryImages.map((_, i) => (
+                          <div key={i} className={`h-1 rounded-full transition-all duration-500 ${i === currentImageIndex ? 'w-6 bg-white' : 'w-1.5 bg-white/40'}`} />
+                        ))}
+                      </div>
+                    </>
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center text-slate-300 gap-2"><ImageIcon size={40} strokeWidth={1} /><p className="text-[10px] font-black uppercase tracking-widest">Galeria em breve</p></div>
                   )}
